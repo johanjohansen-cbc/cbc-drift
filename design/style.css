@@ -1,0 +1,15 @@
+/*
+Theme Name:   CBC KickOff (Child)
+Theme URI:    https://event.cbcit.dk/
+Description:  CBC KickOff 2026 conference design — child theme. Carries the brand
+              theme.json tokens, the cbc-kickoff presentation stylesheet, and the
+              section block patterns. Set "Template" below to the active parent
+              theme's folder slug before activating.
+Author:       CBC IT
+Template:     REPLACE-WITH-PARENT-THEME-SLUG
+Version:      1.0.0
+Text Domain:  cbc-kickoff
+*/
+
+/* Intentionally minimal: presentation lives in /assets/css/cbc-kickoff.css,
+   tokens live in /theme.json. */

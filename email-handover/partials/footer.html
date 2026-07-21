@@ -1,0 +1,17 @@
+<!--
+  FOOTER  (dark, used on every email).
+  Placeholders: {{ event_meta }} {{ contact_email }} {{ legal_line }} {{ unsubscribe_url }}
+  For transactional mail you may drop the unsubscribe line (it is required for
+  bulk/marketing mail in the EU, optional for genuine 1:1 transactional mail).
+-->
+<tr>
+  <td bgcolor="#16201F" class="px" style="background:#16201F; padding:28px 40px; font-family:Arial,Helvetica,sans-serif; font-size:13px; line-height:20px; color:#9FB0AC;">
+    <div style="font-size:16px; font-weight:bold; color:#FFFFFF; padding-bottom:6px;">CBC <span style="color:#5BAE3A;">&bull;</span> Event</div>
+    {{ event_meta }}<br>
+    Kontakt: <a href="mailto:{{ contact_email }}" style="color:#5BAE3A; text-decoration:none;">{{ contact_email }}</a>
+    <div style="padding-top:14px; font-size:11px; color:#69736F;">
+      {{ legal_line }}
+      <a href="{{ unsubscribe_url }}" style="color:#69736F; text-decoration:underline;">Afmeld</a>
+    </div>
+  </td>
+</tr>

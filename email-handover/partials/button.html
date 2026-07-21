@@ -1,0 +1,20 @@
+<!--
+  BUTTON — bulletproof (renders as a rounded teal pill in Outlook desktop too,
+  via the VML roundrect; a styled <a> everywhere else).
+  Placeholders: {{ url }} {{ label }}
+  Width is fixed at 300px here; for short labels reduce it (both the VML `width`
+  and the <a> `width` must match). This is the PRIMARY action style — see the
+  button rule in README.md before converting links.
+
+  SECONDARY / inline links keep this style instead of a button:
+    <a href="{{ url }}" style="color:#14798A; font-weight:bold; text-decoration:none;">{{ label }} &rarr;</a>
+-->
+<!--[if mso]>
+<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ url }}" style="height:50px; v-text-anchor:middle; width:300px;" arcsize="50%" strokecolor="#14798A" fillcolor="#14798A">
+  <w:anchorlock/>
+  <center style="color:#FFFFFF; font-family:Arial,sans-serif; font-size:16px; font-weight:bold;">{{ label }}</center>
+</v:roundrect>
+<![endif]-->
+<!--[if !mso]><!-- -->
+<a class="btn-primary" href="{{ url }}" style="background:#14798A; border-radius:999px; color:#FFFFFF; display:inline-block; font-family:Arial,Helvetica,sans-serif; font-size:16px; font-weight:bold; line-height:50px; text-align:center; text-decoration:none; width:300px; -webkit-text-size-adjust:none;">{{ label }}</a>
+<!--<![endif]-->

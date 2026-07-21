@@ -1,0 +1,28 @@
+PLACE SELF-HOSTED FONT FILES HERE  (.woff2)
+============================================
+
+For GDPR compliance on an EU/Danish site, host the fonts locally rather than
+hot-linking Google Fonts. Download the families below (e.g. from
+google-webfonts-helper, https://gwfh.mranftl.com/fonts) and drop the woff2
+files here with these EXACT filenames — they match the fontFace src paths in
+theme.json:
+
+  bricolage-grotesque-400.woff2
+  bricolage-grotesque-600.woff2
+  bricolage-grotesque-700.woff2
+  bricolage-grotesque-800.woff2
+
+  hanken-grotesk-400.woff2
+  hanken-grotesk-500.woff2
+  hanken-grotesk-600.woff2
+  hanken-grotesk-700.woff2
+
+  instrument-serif-400.woff2
+  instrument-serif-400-italic.woff2
+
+Latin subset is sufficient (the site is Danish — confirm æ ø å render; they are
+in the Latin subset for all three families).
+
+ALTERNATIVE (not recommended for EU): if you must load from Google Fonts,
+remove the fontFace blocks from theme.json and enqueue the Google CSS instead.
+The font-family slugs (bricolage / hanken / instrument) stay the same either way.

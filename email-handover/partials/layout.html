@@ -1,0 +1,75 @@
+<!--
+  CBC email — MASTER LAYOUT (document shell + outer wrapper + card).
+  Neutral {{ placeholders }} — map these to YOUR engine (Blade @yield/@include,
+  Twig block/include, Handlebars partials, Liquid, Go templates, …) and to the
+  variables each template ALREADY uses. Do not invent new variable names where
+  one already exists.
+
+  Slots:
+    {{ title }}      <title> text (per template)
+    {{ preheader }}  inbox preview line (per template, 40–110 chars)
+    {{ header }}     include partials/header-hero.html OR header-compact.html
+    {{ body }}       the per-template content (the part that differs)
+    {{ footer }}     include partials/footer.html
+-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="da" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<title>{{ title }}</title>
+<!--[if mso]>
+<noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
+<![endif]-->
+<style>
+  /* Progressive enhancement ONLY. Outlook ignores most of this and uses the
+     inline styles. Never put anything critical here that isn't also inline. */
+  body, table, td, a { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+  table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; }
+  img { -ms-interpolation-mode:bicubic; border:0; outline:none; text-decoration:none; }
+  body { margin:0; padding:0; width:100% !important; background:#F7F8F6; }
+  a { color:#14798A; }
+  .btn-primary:hover { background:#0E5C6A !important; }
+  @media screen and (max-width:620px) {
+    .container { width:100% !important; }
+    .px { padding-left:24px !important; padding-right:24px !important; }
+    .h1 { font-size:34px !important; line-height:38px !important; }
+    .stack { display:block !important; width:100% !important; }
+    .stack-gap { height:12px !important; }
+  }
+</style>
+</head>
+<body style="margin:0; padding:0; background:#F7F8F6;">
+
+  <!-- Preheader (hidden preview text) -->
+  <div style="display:none; max-height:0; overflow:hidden; mso-hide:all; font-size:1px; line-height:1px; color:#F7F8F6;">{{ preheader }}</div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F7F8F6" style="background:#F7F8F6;">
+    <tr>
+      <td align="center" style="padding:28px 12px;">
+
+        <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px; background:#FFFFFF; border:1px solid #E5E9E5;">
+
+          {{ header }}
+
+          <tr>
+            <td class="px" style="padding:32px 40px; font-family:Arial,Helvetica,sans-serif; font-size:16px; line-height:24px; color:#16201F;">
+              {{ body }}
+            </td>
+          </tr>
+
+          {{ footer }}
+
+        </table>
+
+        <div style="font-family:Arial,Helvetica,sans-serif; font-size:11px; color:#9AA39F; padding:16px 0 0 0;">© 2026 CBC IT</div>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

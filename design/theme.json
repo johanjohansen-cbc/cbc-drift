@@ -1,0 +1,124 @@
+{
+	"$schema": "https://schemas.wp.org/wp/6.6/theme.json",
+	"version": 3,
+	"settings": {
+		"appearanceTools": true,
+		"useRootPaddingAwareAlignments": true,
+		"layout": {
+			"contentSize": "1180px",
+			"wideSize": "1320px"
+		},
+		"color": {
+			"defaultPalette": false,
+			"defaultGradients": false,
+			"custom": true,
+			"palette": [
+				{ "slug": "ink",        "color": "#16201F", "name": "Ink" },
+				{ "slug": "ink-soft",   "color": "#3A4744", "name": "Ink Soft" },
+				{ "slug": "paper",      "color": "#F7F8F6", "name": "Paper" },
+				{ "slug": "surface",    "color": "#FFFFFF", "name": "Surface" },
+				{ "slug": "line",       "color": "#E5E9E5", "name": "Line" },
+				{ "slug": "muted",      "color": "#69736F", "name": "Muted" },
+				{ "slug": "teal",       "color": "#14798A", "name": "Brand Teal" },
+				{ "slug": "teal-deep",  "color": "#0E5C6A", "name": "Brand Teal Deep" },
+				{ "slug": "teal-wash",  "color": "#E2F0F2", "name": "Brand Teal Wash" },
+				{ "slug": "green",      "color": "#5BAE3A", "name": "Accent Green" },
+				{ "slug": "green-deep", "color": "#3F8A27", "name": "Accent Green Deep" },
+				{ "slug": "green-wash", "color": "#E9F4E3", "name": "Accent Green Wash" }
+			]
+		},
+		"typography": {
+			"fluid": true,
+			"customFontSize": true,
+			"lineHeight": true,
+			"letterSpacing": true,
+			"fontFamilies": [
+				{
+					"slug": "bricolage",
+					"name": "Bricolage Grotesque",
+					"fontFamily": "\"Bricolage Grotesque\", system-ui, sans-serif",
+					"fontFace": [
+						{ "fontFamily": "Bricolage Grotesque", "fontWeight": "400", "fontStyle": "normal", "fontDisplay": "swap", "src": [ "file:./assets/fonts/bricolage-grotesque-400.woff2" ] },
+						{ "fontFamily": "Bricolage Grotesque", "fontWeight": "600", "fontStyle": "normal", "fontDisplay": "swap", "src": [ "file:./assets/fonts/bricolage-grotesque-600.woff2" ] },
+						{ "fontFamily": "Bricolage Grotesque", "fontWeight": "700", "fontStyle": "normal", "fontDisplay": "swap", "src": [ "file:./assets/fonts/bricolage-grotesque-700.woff2" ] },
+						{ "fontFamily": "Bricolage Grotesque", "fontWeight": "800", "fontStyle": "normal", "fontDisplay": "swap", "src": [ "file:./assets/fonts/bricolage-grotesque-800.woff2" ] }
+					]
+				},
+				{
+					"slug": "hanken",
+					"name": "Hanken Grotesk",
+					"fontFamily": "\"Hanken Grotesk\", system-ui, sans-serif",
+					"fontFace": [
+						{ "fontFamily": "Hanken Grotesk", "fontWeight": "400", "fontStyle": "normal", "fontDisplay": "swap", "src": [ "file:./assets/fonts/hanken-grotesk-400.woff2" ] },
+						{ "fontFamily": "Hanken Grotesk", "fontWeight": "500", "fontStyle": "normal", "fontDisplay": "swap", "src": [ "file:./assets/fonts/hanken-grotesk-500.woff2" ] },
+						{ "fontFamily": "Hanken Grotesk", "fontWeight": "600", "fontStyle": "normal", "fontDisplay": "swap", "src": [ "file:./assets/fonts/hanken-grotesk-600.woff2" ] },
+						{ "fontFamily": "Hanken Grotesk", "fontWeight": "700", "fontStyle": "normal", "fontDisplay": "swap", "src": [ "file:./assets/fonts/hanken-grotesk-700.woff2" ] }
+					]
+				},
+				{
+					"slug": "instrument",
+					"name": "Instrument Serif",
+					"fontFamily": "\"Instrument Serif\", Georgia, serif",
+					"fontFace": [
+						{ "fontFamily": "Instrument Serif", "fontWeight": "400", "fontStyle": "normal", "fontDisplay": "swap", "src": [ "file:./assets/fonts/instrument-serif-400.woff2" ] },
+						{ "fontFamily": "Instrument Serif", "fontWeight": "400", "fontStyle": "italic", "fontDisplay": "swap", "src": [ "file:./assets/fonts/instrument-serif-400-italic.woff2" ] }
+					]
+				}
+			],
+			"fontSizes": [
+				{ "slug": "small",    "name": "Small",    "size": "15px" },
+				{ "slug": "medium",   "name": "Medium",   "size": "17px" },
+				{ "slug": "large",    "name": "Large",    "size": "21px" },
+				{ "slug": "x-large",  "name": "X-Large",  "size": "clamp(26px, 3.6vw, 40px)", "fluid": { "min": "26px", "max": "40px" } },
+				{ "slug": "xx-large", "name": "XX-Large", "size": "clamp(32px, 5vw, 52px)",   "fluid": { "min": "32px", "max": "52px" } },
+				{ "slug": "huge",     "name": "Huge",     "size": "clamp(48px, 9.4vw, 124px)", "fluid": { "min": "48px", "max": "124px" } }
+			]
+		},
+		"spacing": {
+			"units": [ "px", "rem", "em", "vh", "vw", "%" ],
+			"spacingScale": { "steps": 0 },
+			"spacingSizes": [
+				{ "slug": "30", "name": "XS",   "size": "12px" },
+				{ "slug": "40", "name": "S",    "size": "20px" },
+				{ "slug": "50", "name": "M",    "size": "32px" },
+				{ "slug": "60", "name": "L",    "size": "54px" },
+				{ "slug": "70", "name": "XL",   "size": "clamp(64px, 9vw, 96px)" },
+				{ "slug": "80", "name": "XXL",  "size": "clamp(80px, 12vw, 140px)" }
+			]
+		}
+	},
+	"styles": {
+		"color": { "background": "var:preset|color|paper", "text": "var:preset|color|ink" },
+		"typography": {
+			"fontFamily": "var:preset|font-family|hanken",
+			"fontSize": "var:preset|font-size|medium",
+			"lineHeight": "1.6"
+		},
+		"elements": {
+			"heading": {
+				"typography": {
+					"fontFamily": "var:preset|font-family|bricolage",
+					"fontWeight": "700",
+					"lineHeight": "1.05",
+					"letterSpacing": "-0.02em"
+				}
+			},
+			"h1": { "typography": { "fontSize": "var:preset|font-size|huge", "fontWeight": "800", "letterSpacing": "-0.045em" } },
+			"h2": { "typography": { "fontSize": "var:preset|font-size|xx-large" } },
+			"link": {
+				"color": { "text": "var:preset|color|teal" },
+				":hover": { "color": { "text": "var:preset|color|teal-deep" } }
+			},
+			"button": {
+				"color": { "background": "var:preset|color|teal", "text": "#ffffff" },
+				"border": { "radius": "999px" },
+				"spacing": { "padding": { "top": "12px", "bottom": "12px", "left": "22px", "right": "22px" } },
+				"typography": { "fontFamily": "var:preset|font-family|hanken", "fontWeight": "600", "fontSize": "var:preset|font-size|small" },
+				":hover": { "color": { "background": "var:preset|color|teal-deep" } }
+			}
+		},
+		"blocks": {
+			"core/site-title": { "typography": { "fontFamily": "var:preset|font-family|bricolage", "fontWeight": "800" } }
+		}
+	}
+}

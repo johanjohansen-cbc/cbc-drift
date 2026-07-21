@@ -1,0 +1,624 @@
+<!--
+  CBC Event — Konferenceoverblik (dashboard-prototype)
+  ----------------------------------------------------
+  Til WP-admin. Alt er scoped under .cbc-dashboard, bruger systemfont og inline-SVG.
+  Ingen eksterne fonte/CDN'er. <details>/<summary> giver native fold-ud uden afhængigheder.
+  Den lille søgefilter på deltagerlisten er ren vanilla-JS (kan fjernes).
+
+  Integration i WP: læg markuppen fra <div class="cbc-dashboard"> ind i din
+  add_menu_page()-callback, og enqueue CSS'en via admin_enqueue_scripts.
+  Erstat sample-data med dine egne loops. Dashicons kan bruges i stedet for SVG'erne.
+-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+/* ---- Faux WP-admin baggrund (kun til preview – fjernes i WP) ---- */
+body { margin: 0; background: #f0f0f1; padding: 24px 20px 60px; }
+.cbc-wp-notice {
+  max-width: 980px; margin: 0 auto 22px; background:#fff; border-left:4px solid #dba617;
+  border:1px solid #c3c4c7; border-left-width:4px; border-radius:2px; padding:10px 14px;
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  color:#3c434a;
+}
+.cbc-wp-notice a { color:#2271b1; text-decoration:none; }
+
+/* =========================================================
+   DASHBOARD — alt scoped herunder
+   ========================================================= */
+.cbc-dashboard {
+  --ink:        #1d2327;
+  --ink-soft:   #50575e;
+  --ink-faint:  #787c82;
+  --card:       #ffffff;
+  --line:       #e3e4e8;
+  --line-soft:  #f0f0f2;
+  --accent:     #2271b1;
+  --accent-ink: #135e96;
+  --accent-bg:  #eef4fb;
+  --green:      #1a7f5a;
+  --green-bg:   #e9f6ef;
+  --amber:      #8a6300;
+  --amber-bg:   #fdf4dc;
+  --red:        #b32d2e;
+  --radius:     12px;
+  --shadow:     0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.04);
+  --shadow-lg:  0 2px 4px rgba(16,24,40,.06), 0 4px 14px rgba(16,24,40,.06);
+
+  max-width: 980px;
+  margin: 0 auto;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+.cbc-dashboard *,
+.cbc-dashboard *::before,
+.cbc-dashboard *::after { box-sizing: border-box; }
+
+/* ---- Header ---- */
+.cbc-head { margin: 0 0 20px; }
+.cbc-head h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  line-height: 1.2;
+  color: var(--ink);
+}
+.cbc-active {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 10px;
+  padding: 4px 12px 4px 10px;
+  background: var(--accent-bg);
+  color: var(--accent-ink);
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.cbc-active .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 3px var(--green-bg);
+}
+.cbc-active span.muted { color: var(--accent-ink); opacity: .7; font-weight: 500; }
+
+/* ---- KPI-felter ---- */
+.cbc-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 26px;
+}
+.cbc-kpi {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 15px 16px 14px;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+.cbc-kpi .label {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .055em; color: var(--ink-faint);
+}
+.cbc-kpi .label svg { width: 14px; height: 14px; color: var(--ink-faint); flex: none; }
+.cbc-kpi .num {
+  margin-top: 8px;
+  font-size: 32px; font-weight: 700; line-height: 1;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.cbc-kpi .sub { margin-top: 7px; font-size: 12px; color: var(--ink-soft); }
+.cbc-kpi.is-accent .num { color: var(--accent-ink); }
+
+/* ---- Layout: to kolonner ---- */
+.cbc-cols {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 782px) {
+  .cbc-cols { grid-template-columns: 1fr; }
+}
+.cbc-col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+/* ---- Eyebrow over hver kolonne ---- */
+.cbc-eyebrow {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--ink-faint);
+  margin: 0 2px 2px;
+}
+
+/* ---- Kort ---- */
+.cbc-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.cbc-card > summary,
+.cbc-card-head {
+  list-style: none;
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  user-select: none;
+}
+.cbc-card > summary::-webkit-details-marker { display: none; }
+.cbc-card-icon {
+  flex: none; width: 34px; height: 34px; border-radius: 9px;
+  display: grid; place-items: center;
+  background: var(--accent-bg); color: var(--accent-ink);
+}
+.cbc-card-icon svg { width: 18px; height: 18px; }
+.cbc-card-title { flex: 1 1 auto; min-width: 0; }
+.cbc-card-title .t {
+  font-size: 14.5px; font-weight: 600; color: var(--ink); line-height: 1.25;
+}
+.cbc-card-title .meta {
+  font-size: 12px; color: var(--ink-soft); margin-top: 2px;
+}
+.cbc-count {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700; font-size: 15px;
+  color: var(--ink);
+  background: var(--line-soft);
+  border-radius: 8px;
+  padding: 4px 11px;
+  min-width: 38px; text-align: center;
+}
+.cbc-chev {
+  flex: none; width: 18px; height: 18px; color: var(--ink-faint);
+  transition: transform .18s ease;
+}
+.cbc-card[open] > summary .cbc-chev { transform: rotate(90deg); }
+.cbc-card > summary:hover .cbc-card-title .t { color: var(--accent-ink); }
+
+/* fold-ud krop */
+.cbc-card-body { border-top: 1px solid var(--line-soft); padding: 4px 0; }
+
+/* ---- Filter (deltagere) ---- */
+.cbc-filter {
+  position: relative; margin: 8px 14px 4px;
+}
+.cbc-filter svg {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  width: 15px; height: 15px; color: var(--ink-faint); pointer-events: none;
+}
+.cbc-filter input {
+  width: 100%; padding: 7px 10px 7px 32px;
+  border: 1px solid var(--line); border-radius: 8px;
+  font: inherit; font-size: 13px; color: var(--ink);
+  background: #fcfcfd;
+}
+.cbc-filter input:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+/* ---- Personliste ---- */
+.cbc-list { margin: 0; padding: 2px 4px 6px; list-style: none; }
+.cbc-person {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 8px 12px; border-radius: 8px;
+}
+.cbc-person:hover { background: var(--line-soft); }
+.cbc-person .who { flex: 1 1 auto; min-width: 0; }
+.cbc-person .name { font-weight: 500; color: var(--ink); }
+.cbc-person .org { color: var(--ink-soft); }
+.cbc-person .org::before { content: "·"; margin: 0 6px; color: var(--ink-faint); }
+.cbc-cancel {
+  flex: none; align-self: center;
+  font-size: 12.5px; color: var(--red); text-decoration: none;
+  padding: 2px 6px; border-radius: 6px; opacity: 0; transition: opacity .12s;
+}
+.cbc-person:hover .cbc-cancel,
+.cbc-person:focus-within .cbc-cancel { opacity: 1; }
+.cbc-cancel:hover { background: #fcebeb; text-decoration: underline; }
+
+/* note inline */
+.cbc-note {
+  display: flex; align-items: flex-start; gap: 6px;
+  margin-top: 4px;
+  background: var(--amber-bg);
+  border-radius: 7px;
+  padding: 5px 9px;
+  font-size: 12.5px; color: var(--amber); line-height: 1.4;
+}
+.cbc-note svg { width: 13px; height: 13px; flex: none; margin-top: 2px; }
+.cbc-note b { font-weight: 700; }
+/* lille "note"-prik på navne med note (når kollapset) */
+.cbc-note-flag {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-left: 7px; font-size: 11px; font-weight: 600;
+  color: var(--amber); vertical-align: middle;
+}
+.cbc-note-flag svg { width: 12px; height: 12px; }
+
+/* ---- Stande-fordeling ---- */
+.cbc-stands { padding: 6px 16px 14px; }
+.cbc-stand-row {
+  display: grid; grid-template-columns: 1fr auto; align-items: center;
+  gap: 10px 12px; padding: 9px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.cbc-stand-row:last-child { border-bottom: 0; }
+.cbc-stand-row .vendor { font-weight: 500; color: var(--ink); }
+.cbc-stand-row .qty {
+  font-variant-numeric: tabular-nums; font-weight: 700;
+  color: var(--accent-ink); font-size: 14px; justify-self: end;
+}
+.cbc-bar {
+  grid-column: 1 / -1; height: 6px; border-radius: 99px;
+  background: var(--line-soft); overflow: hidden; margin-top: 2px;
+}
+.cbc-bar > i { display: block; height: 100%; border-radius: 99px; background: var(--accent); }
+
+/* ---- Logistik-undergrupper ---- */
+.cbc-split {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+  border-top: 1px solid var(--line-soft);
+}
+.cbc-subgroup { padding: 0; }
+.cbc-subgroup + .cbc-subgroup { border-left: 1px solid var(--line-soft); }
+.cbc-subgroup > summary {
+  list-style: none; cursor: pointer; user-select: none;
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 14px;
+}
+.cbc-subgroup > summary::-webkit-details-marker { display: none; }
+.cbc-subgroup .sg-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-faint); flex: 1;
+}
+.cbc-subgroup .sg-count {
+  font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ink);
+}
+.cbc-subgroup .cbc-chev { width: 15px; height: 15px; }
+.cbc-subgroup[open] > summary .cbc-chev { transform: rotate(90deg); }
+.cbc-subgroup .cbc-chips {
+  padding: 0 12px 12px; display: flex; flex-wrap: wrap; gap: 6px;
+}
+.cbc-chip {
+  font-size: 12px; color: var(--ink-soft);
+  background: var(--line-soft); border-radius: 99px; padding: 3px 10px;
+  white-space: nowrap;
+}
+@media (max-width: 520px) {
+  .cbc-split { grid-template-columns: 1fr; }
+  .cbc-subgroup + .cbc-subgroup { border-left: 0; border-top: 1px solid var(--line-soft); }
+}
+
+/* footer */
+.cbc-foot {
+  margin-top: 22px; font-size: 12px; color: var(--ink-faint);
+  display: flex; align-items: center; gap: 8px;
+}
+.cbc-foot code {
+  background: var(--line-soft); border-radius: 5px; padding: 2px 7px;
+  font-size: 11.5px; color: var(--ink-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cbc-chev { transition: none; }
+}
+</style>
+
+
+<!-- WP's egen opdateringsnotits (kun for kontekst i preview) -->
+<div class="cbc-wp-notice">
+  <a href="#">WordPress 7.0</a> er tilgængelig! Giv venligst administratoren af webstedet besked.
+</div>
+
+
+<div class="cbc-dashboard">
+
+  <!-- ===== HEADER ===== -->
+  <header class="cbc-head">
+    <h1>CBC Event — konferenceoverblik</h1>
+    <div class="cbc-active">
+      <span class="dot"></span>
+      <span class="muted">Aktiv konference:</span> CBC KickOff 2026
+    </div>
+  </header>
+
+  <!-- ===== KPI-FELTER ===== -->
+  <section class="cbc-kpis">
+    <div class="cbc-kpi is-accent">
+      <div class="label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c0-2.8 2.4-4.5 5.5-4.5s5.5 1.7 5.5 4.5"/><path d="M16 6a3 3 0 010 6M20.5 19c0-2.4-1.6-3.9-3.9-4.4"/></svg>
+        Deltagere
+      </div>
+      <div class="num">28</div>
+      <div class="sub">fra 18 firmaer</div>
+    </div>
+
+    <div class="cbc-kpi">
+      <div class="label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V6l5-2 5 2 5-2v16"/><path d="M4 20h16"/><path d="M9 4v16M14 6v14"/></svg>
+        Leverandører
+      </div>
+      <div class="num">6</div>
+      <div class="sub">2 med note</div>
+    </div>
+
+    <div class="cbc-kpi is-accent">
+      <div class="label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9l1.2-3.5A1.5 1.5 0 016.6 4.5h10.8a1.5 1.5 0 011.4 1L20 9"/><path d="M4 9h16v3.5a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 12.5z"/><path d="M6 14v6M18 14v6M9 20v-3.5h6V20"/></svg>
+        Stande solgt
+      </div>
+      <div class="num">10</div>
+      <div class="sub">fordelt på 5 leverandører</div>
+    </div>
+
+    <div class="cbc-kpi">
+      <div class="label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 11V8a6 6 0 0112 0v3"/><path d="M5 11h14l-1 7a2 2 0 01-2 1.6H8A2 2 0 016 18z"/><path d="M9.5 6.5h.01M14 5.5h.01"/></svg>
+        Aftenfest
+      </div>
+      <div class="num">28</div>
+      <div class="sub">24 deltagere · 4 leverandører</div>
+    </div>
+
+    <div class="cbc-kpi">
+      <div class="label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-2.5A1.5 1.5 0 014.5 14H20v4"/><path d="M3 18h18"/><path d="M6 14v-2.5A1.5 1.5 0 017.5 10h4A1.5 1.5 0 0113 11.5V14"/></svg>
+        Overnatning — dagen før
+      </div>
+      <div class="num">6</div>
+      <div class="sub">4 deltagere · 2 leverandører</div>
+    </div>
+
+    <div class="cbc-kpi">
+      <div class="label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-2.5A1.5 1.5 0 014.5 14H20v4"/><path d="M3 18h18"/><path d="M6 14v-2.5A1.5 1.5 0 017.5 10h4A1.5 1.5 0 0113 11.5V14"/></svg>
+        Overnatning — på dagen
+      </div>
+      <div class="num">24</div>
+      <div class="sub">21 deltagere · 3 leverandører</div>
+    </div>
+  </section>
+
+
+  <!-- ===== HOVEDINDHOLD: TO KOLONNER ===== -->
+  <div class="cbc-cols">
+
+    <!-- ---------- VENSTRE: tilmeldinger ---------- -->
+    <div class="cbc-col">
+      <p class="cbc-eyebrow">Tilmeldinger</p>
+
+      <!-- DELTAGERE -->
+      <details class="cbc-card" open>
+        <summary>
+          <span class="cbc-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c0-2.8 2.4-4.5 5.5-4.5s5.5 1.7 5.5 4.5"/><path d="M16 6a3 3 0 010 6M20.5 19c0-2.4-1.6-3.9-3.9-4.4"/></svg>
+          </span>
+          <span class="cbc-card-title">
+            <span class="t">Deltagere</span>
+            <span class="meta">6 med note · klik for at folde ud</span>
+          </span>
+          <span class="cbc-count">28</span>
+          <svg class="cbc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+        </summary>
+
+        <div class="cbc-card-body">
+          <div class="cbc-filter">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+            <input type="search" placeholder="Filtrér efter navn eller firma…" data-filter="deltagere">
+          </div>
+
+          <ul class="cbc-list" data-list="deltagere">
+            <li class="cbc-person"><span class="who"><span class="name">Alexander Fabech</span><span class="org">Kortermann-IT</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Anja Hjort</span><span class="org">CBC IT Amba</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Bo Jessen</span><span class="org">LBit.dk</span>
+              <div class="cbc-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h11l3 3v13H5z"/><path d="M8 9h7M8 13h7M8 17h4"/></svg><span><b>Note:</b> Ankommer først kl. 14 pga. kundemøde om formiddagen.</span></div>
+            </span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Christian Holst</span><span class="org">Kontor Syd</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Christina Dyhrberg Thulin</span><span class="org">Kortermann-IT</span>
+              <div class="cbc-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h11l3 3v13H5z"/><path d="M8 9h7M8 13h7M8 17h4"/></svg><span><b>Note:</b> Vegetar.</span></div>
+            </span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Fabian Petersen</span><span class="org">SeoSoft ApS</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Frederik Wilkens</span><span class="org">Laptops.dk A/S</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Henrik Kortermann Sørensen</span><span class="org">Kortermann-IT</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Jan Nissen Petersen</span><span class="org">CBC IT Amba</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Jes Olesen</span><span class="org">Data Gården A/S</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Johan Johansen</span><span class="org">CBC IT Amba</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Justin baron Stennicke-Rønsholdt</span><span class="org">datacompagniet A/S</span>
+              <div class="cbc-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h11l3 3v13H5z"/><path d="M8 9h7M8 13h7M8 17h4"/></svg><span><b>Note:</b> Kører sammen med René Lind Gammelmark.</span></div>
+            </span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Karl-Emil Pedersen</span><span class="org">ENVO IT A/S</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Karsten Hindkær</span><span class="org">EDB Centret, Holstebro A/S</span>
+              <div class="cbc-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h11l3 3v13H5z"/><path d="M8 9h7M8 13h7M8 17h4"/></svg><span><b>Note:</b> Glutenallergi — har brug for glutenfri forplejning.</span></div>
+            </span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Kasper Trøjborg Andersen</span><span class="org">Kortermann-IT</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Lars Rasmussen</span><span class="org">LBit.dk</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Lars Buchreitz</span><span class="org">Ivaldi</span>
+              <div class="cbc-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h11l3 3v13H5z"/><path d="M8 9h7M8 13h7M8 17h4"/></svg><span><b>Note:</b> Kørestolsbruger — behov for niveaufri adgang til alle lokaler.</span></div>
+            </span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Mads Høgh Høiberg</span><span class="org">FLC Danmark ApS</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Mikael Nysom</span><span class="org">Data Gården A/S</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Peter Grønborg</span><span class="org">Kontor Syd</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Peter Jørgensen</span><span class="org">MidtVest IT A/S</span>
+              <div class="cbc-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h11l3 3v13H5z"/><path d="M8 9h7M8 13h7M8 17h4"/></svg><span><b>Note:</b> Kommer kun til eftermiddagssessionerne.</span></div>
+            </span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Preben Ladefoged</span><span class="org">Ladefoged IT</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Preben Hove-Nyborg</span><span class="org">ITINO A/S</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">René Lind Gammelmark</span><span class="org">Kontorbutikken.dk ApS</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Søren Eggert Lundsteen Olsen</span><span class="org">SeoSoft ApS</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Thomas Bach</span><span class="org">Labtech Data A/S</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Tomas Dybdahl</span><span class="org">Data-Link ApS</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Ulrich A. R. Mieth</span><span class="org">Kortermann-IT</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+          </ul>
+        </div>
+      </details>
+
+      <!-- LEVERANDØRER -->
+      <details class="cbc-card">
+        <summary>
+          <span class="cbc-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V6l5-2 5 2 5-2v16"/><path d="M4 20h16"/><path d="M9 4v16M14 6v14"/></svg>
+          </span>
+          <span class="cbc-card-title">
+            <span class="t">Leverandører</span>
+            <span class="meta">2 med note · klik for at folde ud</span>
+          </span>
+          <span class="cbc-count">6</span>
+          <svg class="cbc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+        </summary>
+        <div class="cbc-card-body">
+          <ul class="cbc-list">
+            <li class="cbc-person"><span class="who"><span class="name">ALSO A/S</span><span class="org">Mette Kjær</span>
+              <div class="cbc-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h11l3 3v13H5z"/><path d="M8 9h7M8 13h7M8 17h4"/></svg><span><b>Note:</b> Ønsker stand tæt på hovedindgangen. Medbringer egen 65" skærm.</span></div>
+            </span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">TD SYNNEX</span><span class="org">Jacob Friis</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Epson Danmark</span><span class="org">Louise Brandt</span>
+              <div class="cbc-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h11l3 3v13H5z"/><path d="M8 9h7M8 13h7M8 17h4"/></svg><span><b>Note:</b> Skal bruge ekstra strømudtag (min. 3 stik) ved standen.</span></div>
+            </span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Ingram Micro</span><span class="org">Daniel Krogh</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Dustin A/S</span><span class="org">Sara Lund</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+            <li class="cbc-person"><span class="who"><span class="name">Lenovo Danmark</span><span class="org">Martin Holm</span></span><a href="#" class="cbc-cancel">Annullér</a></li>
+          </ul>
+        </div>
+      </details>
+    </div>
+
+
+    <!-- ---------- HØJRE: stande + logistik ---------- -->
+    <div class="cbc-col">
+      <p class="cbc-eyebrow">Stande</p>
+
+      <!-- STANDE -->
+      <details class="cbc-card" open>
+        <summary>
+          <span class="cbc-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9l1.2-3.5A1.5 1.5 0 016.6 4.5h10.8a1.5 1.5 0 011.4 1L20 9"/><path d="M4 9h16v3.5a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 12.5z"/><path d="M6 14v6M18 14v6M9 20v-3.5h6V20"/></svg>
+          </span>
+          <span class="cbc-card-title">
+            <span class="t">Stande solgt</span>
+            <span class="meta">5 leverandører</span>
+          </span>
+          <span class="cbc-count">10</span>
+          <svg class="cbc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+        </summary>
+        <div class="cbc-stands">
+          <div class="cbc-stand-row"><span class="vendor">ALSO A/S</span><span class="qty">3</span><span class="cbc-bar"><i style="width:100%"></i></span></div>
+          <div class="cbc-stand-row"><span class="vendor">TD SYNNEX</span><span class="qty">2</span><span class="cbc-bar"><i style="width:66%"></i></span></div>
+          <div class="cbc-stand-row"><span class="vendor">Epson Danmark</span><span class="qty">2</span><span class="cbc-bar"><i style="width:66%"></i></span></div>
+          <div class="cbc-stand-row"><span class="vendor">Ingram Micro</span><span class="qty">2</span><span class="cbc-bar"><i style="width:66%"></i></span></div>
+          <div class="cbc-stand-row"><span class="vendor">Dustin A/S</span><span class="qty">1</span><span class="cbc-bar"><i style="width:33%"></i></span></div>
+        </div>
+      </details>
+
+      <p class="cbc-eyebrow" style="margin-top:4px">Logistik</p>
+
+      <!-- AFTENFEST -->
+      <details class="cbc-card" open>
+        <summary>
+          <span class="cbc-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 11V8a6 6 0 0112 0v3"/><path d="M5 11h14l-1 7a2 2 0 01-2 1.6H8A2 2 0 016 18z"/><path d="M9.5 6.5h.01M14 5.5h.01"/></svg>
+          </span>
+          <span class="cbc-card-title">
+            <span class="t">Aftenfest</span>
+            <span class="meta">24 deltagere · 4 leverandører</span>
+          </span>
+          <span class="cbc-count">28</span>
+          <svg class="cbc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+        </summary>
+        <div class="cbc-split">
+          <details class="cbc-subgroup">
+            <summary><span class="sg-label">Deltagere</span><span class="sg-count">24</span><svg class="cbc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></summary>
+            <div class="cbc-chips">
+              <span class="cbc-chip">Alexander Fabech</span><span class="cbc-chip">Anja Hjort</span><span class="cbc-chip">Bo Jessen</span><span class="cbc-chip">Christian Holst</span><span class="cbc-chip">Christina D. Thulin</span><span class="cbc-chip">Fabian Petersen</span><span class="cbc-chip">Frederik Wilkens</span><span class="cbc-chip">Henrik K. Sørensen</span><span class="cbc-chip">Jan Nissen Petersen</span><span class="cbc-chip">Jes Olesen</span><span class="cbc-chip">Johan Johansen</span><span class="cbc-chip">Karl-Emil Pedersen</span><span class="cbc-chip">Karsten Hindkær</span><span class="cbc-chip">Kasper T. Andersen</span><span class="cbc-chip">Lars Rasmussen</span><span class="cbc-chip">Mads Høgh Høiberg</span><span class="cbc-chip">Mikael Nysom</span><span class="cbc-chip">Peter Grønborg</span><span class="cbc-chip">Preben Ladefoged</span><span class="cbc-chip">René L. Gammelmark</span><span class="cbc-chip">Søren E. L. Olsen</span><span class="cbc-chip">Thomas Bach</span><span class="cbc-chip">Tomas Dybdahl</span><span class="cbc-chip">Ulrich A. R. Mieth</span>
+            </div>
+          </details>
+          <details class="cbc-subgroup">
+            <summary><span class="sg-label">Leverandører</span><span class="sg-count">4</span><svg class="cbc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></summary>
+            <div class="cbc-chips">
+              <span class="cbc-chip">ALSO A/S</span><span class="cbc-chip">TD SYNNEX</span><span class="cbc-chip">Epson Danmark</span><span class="cbc-chip">Ingram Micro</span>
+            </div>
+          </details>
+        </div>
+      </details>
+
+      <!-- OVERNATNING DAGEN FØR -->
+      <details class="cbc-card">
+        <summary>
+          <span class="cbc-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-2.5A1.5 1.5 0 014.5 14H20v4"/><path d="M3 18h18"/><path d="M6 14v-2.5A1.5 1.5 0 017.5 10h4A1.5 1.5 0 0113 11.5V14"/></svg>
+          </span>
+          <span class="cbc-card-title">
+            <span class="t">Overnatning — dagen før</span>
+            <span class="meta">4 deltagere · 2 leverandører</span>
+          </span>
+          <span class="cbc-count">6</span>
+          <svg class="cbc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+        </summary>
+        <div class="cbc-split">
+          <details class="cbc-subgroup">
+            <summary><span class="sg-label">Deltagere</span><span class="sg-count">4</span><svg class="cbc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></summary>
+            <div class="cbc-chips"><span class="cbc-chip">Karsten Hindkær</span><span class="cbc-chip">Peter Jørgensen</span><span class="cbc-chip">Preben Hove-Nyborg</span><span class="cbc-chip">Tomas Dybdahl</span></div>
+          </details>
+          <details class="cbc-subgroup">
+            <summary><span class="sg-label">Leverandører</span><span class="sg-count">2</span><svg class="cbc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></summary>
+            <div class="cbc-chips"><span class="cbc-chip">ALSO A/S</span><span class="cbc-chip">Epson Danmark</span></div>
+          </details>
+        </div>
+      </details>
+
+      <!-- OVERNATNING PÅ DAGEN -->
+      <details class="cbc-card">
+        <summary>
+          <span class="cbc-card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-2.5A1.5 1.5 0 014.5 14H20v4"/><path d="M3 18h18"/><path d="M6 14v-2.5A1.5 1.5 0 017.5 10h4A1.5 1.5 0 0113 11.5V14"/></svg>
+          </span>
+          <span class="cbc-card-title">
+            <span class="t">Overnatning — på dagen</span>
+            <span class="meta">21 deltagere · 3 leverandører</span>
+          </span>
+          <span class="cbc-count">24</span>
+          <svg class="cbc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+        </summary>
+        <div class="cbc-split">
+          <details class="cbc-subgroup">
+            <summary><span class="sg-label">Deltagere</span><span class="sg-count">21</span><svg class="cbc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></summary>
+            <div class="cbc-chips">
+              <span class="cbc-chip">Alexander Fabech</span><span class="cbc-chip">Anja Hjort</span><span class="cbc-chip">Bo Jessen</span><span class="cbc-chip">Christina D. Thulin</span><span class="cbc-chip">Fabian Petersen</span><span class="cbc-chip">Frederik Wilkens</span><span class="cbc-chip">Henrik K. Sørensen</span><span class="cbc-chip">Jan Nissen Petersen</span><span class="cbc-chip">Jes Olesen</span><span class="cbc-chip">Johan Johansen</span><span class="cbc-chip">Karl-Emil Pedersen</span><span class="cbc-chip">Karsten Hindkær</span><span class="cbc-chip">Lars Buchreitz</span><span class="cbc-chip">Mads Høgh Høiberg</span><span class="cbc-chip">Mikael Nysom</span><span class="cbc-chip">Peter Jørgensen</span><span class="cbc-chip">Preben Hove-Nyborg</span><span class="cbc-chip">René L. Gammelmark</span><span class="cbc-chip">Søren E. L. Olsen</span><span class="cbc-chip">Thomas Bach</span><span class="cbc-chip">Ulrich A. R. Mieth</span>
+            </div>
+          </details>
+          <details class="cbc-subgroup">
+            <summary><span class="sg-label">Leverandører</span><span class="sg-count">3</span><svg class="cbc-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></summary>
+            <div class="cbc-chips"><span class="cbc-chip">ALSO A/S</span><span class="cbc-chip">TD SYNNEX</span><span class="cbc-chip">Ingram Micro</span></div>
+          </details>
+        </div>
+      </details>
+
+    </div>
+  </div>
+
+  <div class="cbc-foot">Version: <code>1.13.4</code></div>
+</div>
+
+
+<script>
+/* Lille klient-side filter til deltagerlisten – ren vanilla, kan fjernes. */
+(function () {
+  document.querySelectorAll('.cbc-filter input[data-filter]').forEach(function (input) {
+    var list = document.querySelector('[data-list="' + input.dataset.filter + '"]');
+    if (!list) return;
+    input.addEventListener('input', function () {
+      var q = input.value.trim().toLowerCase();
+      list.querySelectorAll('.cbc-person').forEach(function (row) {
+        var txt = row.textContent.toLowerCase();
+        row.style.display = (!q || txt.indexOf(q) !== -1) ? '' : 'none';
+      });
+    });
+  });
+})();
+</script>

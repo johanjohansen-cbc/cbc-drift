@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CBC KickOff 2026 — Designforslag v3 (CBC brand)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     CBC KickOff 2026 — design tokens  (→ map 1:1 to theme.json)
+     Brand sampled from CBC logo: teal #14798A + leaf green #5BAE3A
+     ============================================================ */
+  :root{
+    --ink:#16201F;          /* foreground (teal-charcoal) */
+    --ink-soft:#3A4744;     /* secondary text             */
+    --paper:#F7F8F6;        /* page background (cool warm) */
+    --surface:#FFFFFF;      /* card surface               */
+    --line:#E5E9E5;         /* hairlines                  */
+    --muted:#69736F;        /* tertiary text              */
+    --teal:#14798A;         /* BRAND primary              */
+    --teal-deep:#0E5C6A;    /* hover / strong             */
+    --teal-wash:#E2F0F2;    /* tint                       */
+    --green:#5BAE3A;        /* BRAND accent               */
+    --green-deep:#3F8A27;   /* readable green             */
+    --green-wash:#E9F4E3;   /* tint                       */
+    --brand:var(--teal);
+    --salg:var(--green);    /* track 1 */
+    --teknik:var(--teal);   /* track 2 */
+    --radius:14px;--maxw:1180px;--ease:cubic-bezier(.2,.7,.2,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--paper);color:var(--ink);font-family:'Hanken Grotesk',sans-serif;font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  h1,h2,h3,h4{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;line-height:1.05;letter-spacing:-.02em}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+  .serif{font-family:'Instrument Serif',serif;font-style:italic}
+
+  /* header */
+  header{position:sticky;top:0;z-index:50;transition:.4s var(--ease)}
+  header .bar{display:flex;align-items:center;justify-content:space-between;padding:20px 0;transition:padding .35s var(--ease)}
+  header.scrolled{background:rgba(247,248,246,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  header.scrolled .bar{padding:12px 0}
+  .logo{display:flex;align-items:center;gap:11px;font-family:'Bricolage Grotesque';font-weight:800;font-size:20px;letter-spacing:-.03em}
+  .logo .mark{width:30px;height:30px;border-radius:50%;background:var(--teal);color:#fff;display:grid;place-items:center;font-size:14px;font-weight:800;position:relative}
+  .logo .mark::after{content:"";position:absolute;width:9px;height:9px;border-radius:50%;background:var(--green);right:-2px;bottom:-1px;border:2px solid var(--paper)}
+  nav.main{display:flex;gap:28px;align-items:center}
+  nav.main a{font-size:15px;font-weight:500;color:var(--ink-soft);position:relative;padding:4px 0}
+  nav.main a::after{content:"";position:absolute;left:0;bottom:-2px;width:0;height:2px;background:var(--teal);transition:width .3s var(--ease)}
+  nav.main a:hover{color:var(--ink)}nav.main a:hover::after{width:100%}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:15px;padding:11px 20px;border-radius:999px;transition:transform .25s var(--ease),box-shadow .25s var(--ease),background .25s,color .25s;cursor:pointer}
+  .btn-primary{background:var(--teal);color:#fff;box-shadow:0 8px 22px -10px rgba(20,121,138,.85)}
+  .btn-primary:hover{transform:translateY(-2px);background:var(--teal-deep);box-shadow:0 14px 28px -10px rgba(20,121,138,.95)}
+  .btn-ghost{border:1.5px solid var(--ink);color:var(--ink)}
+  .btn-ghost:hover{background:var(--ink);color:var(--paper)}
+  .menu-toggle{display:none;background:none;border:none;cursor:pointer;color:var(--ink)}
+
+  /* hero — light, with logo's horizontal-line motif */
+  .hero{position:relative;overflow:hidden;padding:92px 0 100px}
+  .hero::before{content:"";position:absolute;inset:0;z-index:0;background:
+    linear-gradient(180deg,var(--surface),transparent 55%),
+    radial-gradient(52% 60% at 88% 6%,var(--teal-wash),transparent 68%),
+    radial-gradient(48% 58% at 2% 100%,var(--green-wash),transparent 70%);}
+  .hero .wrap{position:relative;z-index:2}
+  .eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);background:var(--surface);border:1px solid var(--line);padding:7px 15px;border-radius:999px;box-shadow:0 4px 14px -8px rgba(22,32,31,.25)}
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px var(--green-wash)}
+  .hero h1{font-size:clamp(48px,9.4vw,124px);font-weight:800;margin:26px 0 6px;letter-spacing:-.045em}
+  .hero h1 .yr{color:var(--teal)}
+  .hero .date{font-size:clamp(24px,3.4vw,40px);color:var(--ink-soft)}
+  .hero .date .serif{color:var(--green-deep)}
+  .hero .loc{display:inline-flex;align-items:center;gap:9px;margin-top:24px;font-size:16px;color:var(--muted)}
+  .hero .cta-row{display:flex;flex-wrap:wrap;gap:14px;margin-top:40px}
+  .hero-meta{position:absolute;right:28px;bottom:46px;z-index:2;text-align:right;display:flex;flex-direction:column;gap:2px}
+  .hero-meta .big{font-family:'Bricolage Grotesque';font-weight:800;font-size:56px;line-height:1;letter-spacing:-.04em;color:var(--teal)}
+  .hero-meta .lbl{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+
+  .reveal{opacity:0;transform:translateY(22px);animation:rise .9s var(--ease) forwards}
+  @keyframes rise{to{opacity:1;transform:none}}
+  .d1{animation-delay:.05s}.d2{animation-delay:.16s}.d3{animation-delay:.27s}.d4{animation-delay:.38s}.d5{animation-delay:.5s}
+
+  /* sections */
+  section{padding:96px 0}
+  .sec-head{max-width:680px;margin-bottom:54px}
+  .sec-tag{font-size:13px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);margin-bottom:14px;display:flex;align-items:center;gap:10px}
+  .sec-tag::before{content:"";width:26px;height:2px;background:var(--teal)}
+  .sec-head h2{font-size:clamp(32px,5vw,52px)}
+  .sec-head p{color:var(--muted);font-size:18px;margin-top:16px}
+
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .vp{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:30px 26px;transition:transform .35s var(--ease),box-shadow .35s var(--ease),border-color .35s;position:relative;overflow:hidden}
+  .vp::after{content:"";position:absolute;left:0;top:0;height:3px;width:0;background:var(--teal);transition:width .4s var(--ease)}
+  .vp:hover{transform:translateY(-6px);box-shadow:0 24px 44px -26px rgba(22,32,31,.4);border-color:transparent}
+  .vp:hover::after{width:100%}
+  .vp .ic{width:46px;height:46px;border-radius:12px;background:var(--teal-wash);display:grid;place-items:center;margin-bottom:20px;color:var(--teal)}
+  .vp:nth-child(2) .ic,.vp:nth-child(4) .ic{background:var(--green-wash);color:var(--green-deep)}
+  .vp:nth-child(2)::after,.vp:nth-child(4)::after{background:var(--green)}
+  .vp h3{font-size:21px;margin-bottom:9px}
+  .vp p{font-size:15px;color:var(--muted);line-height:1.55}
+
+  .about{background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .about-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:64px;align-items:center}
+  .about-grid .lead{font-family:'Bricolage Grotesque';font-weight:600;font-size:clamp(26px,3.6vw,40px);line-height:1.18;letter-spacing:-.02em}
+  .about-grid .lead .serif{color:var(--teal)}
+  .about-grid p{color:var(--muted);font-size:17px}
+  .stat-row{display:flex;gap:40px;margin-top:30px}
+  .stat .n{font-family:'Bricolage Grotesque';font-weight:800;font-size:40px;letter-spacing:-.03em}
+  .stat:nth-child(2) .n{color:var(--teal)}.stat:nth-child(3) .n{color:var(--green-deep)}
+  .stat .l{font-size:14px;color:var(--muted)}
+
+  /* program */
+  .legend{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:26px}
+  .legend span{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--ink-soft)}
+  .legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+  .day-label{display:flex;align-items:baseline;gap:14px;margin-bottom:18px}
+  .day-label h3{font-size:26px}.day-label .serif{font-size:24px;color:var(--muted)}
+  .sched{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--surface);box-shadow:0 30px 60px -50px rgba(22,32,31,.5)}
+  .slot{display:grid;grid-template-columns:128px 1fr 1fr;border-top:1px solid var(--line)}
+  .slot:first-child{border-top:none}
+  .slot .time{padding:20px;font-weight:700;font-size:15px;border-right:1px solid var(--line);background:var(--paper);display:flex;align-items:flex-start}
+  .cell{padding:18px 22px;border-right:1px solid var(--line)}
+  .cell:last-child{border-right:none}
+  .cell .ev{font-family:'Bricolage Grotesque';font-weight:600;font-size:16px;display:flex;gap:9px}
+  .cell .ev::before{content:"";width:3px;border-radius:3px;flex:none;align-self:stretch}
+  .cell.salg .ev::before{background:var(--green)}
+  .cell.teknik .ev::before{background:var(--teal)}
+  .cell .room{font-size:13px;color:var(--muted);margin-top:5px;display:flex;align-items:center;gap:6px}
+  .cell .note{font-size:13px;color:var(--ink-soft);margin-top:8px;font-style:italic;opacity:.9}
+  .cell .host{display:inline-block;font-size:12px;font-weight:600;margin-top:8px;padding:2px 9px;border-radius:999px;background:var(--paper)}
+  .slot.full .cell{grid-column:2 / -1;display:flex;flex-direction:column;justify-content:center}
+  .slot.full .cell .ev::before{background:var(--ink)}
+  .band{grid-column:1 / -1;padding:13px 22px;background:var(--teal-wash);color:var(--teal-deep);font-family:'Bricolage Grotesque';font-weight:700;font-size:14px;letter-spacing:.03em;display:flex;align-items:center;gap:12px}
+  .band .t{margin-left:auto;font-family:'Hanken Grotesk';font-weight:600;color:var(--ink-soft);font-size:13px;opacity:.8}
+  .track-tag{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:5px;margin-bottom:7px;display:inline-block}
+  .track-tag.salg{background:var(--green-wash);color:var(--green-deep)}
+  .track-tag.teknik{background:var(--teal-wash);color:var(--teal-deep)}
+
+  /* vendors */
+  .vendors{background:var(--paper)}
+  .vendors .sec-tag{color:var(--green-deep)}.vendors .sec-tag::before{background:var(--green)}
+  .vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+  .vcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:26px;transition:.3s var(--ease)}
+  .vcard:hover{transform:translateY(-5px);box-shadow:0 24px 44px -28px rgba(22,32,31,.4)}
+  .vcard .vlogo{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--green));display:grid;place-items:center;font-family:'Bricolage Grotesque';font-weight:800;font-size:22px;color:#fff;margin-bottom:18px}
+  .vcard h3{font-size:19px}
+  .vcard .rep{font-size:14px;color:var(--muted);margin:4px 0 16px}
+  .vcard a.req{font-size:14px;font-weight:600;color:var(--teal);display:inline-flex;align-items:center;gap:6px}
+  .vcard a.req:hover{gap:10px}
+
+  /* practical CTA — bold brand block */
+  .practical{background:var(--teal);color:#fff;text-align:center;position:relative;overflow:hidden}
+  .practical::after{content:"";position:absolute;inset:0;opacity:.5;background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.10) 0 1.5px,transparent 1.5px 10px);
+    -webkit-mask-image:radial-gradient(60% 100% at 50% 0%,#000,transparent 70%);mask-image:radial-gradient(60% 100% at 50% 0%,#000,transparent 70%)}
+  .practical .wrap{position:relative;z-index:2}
+  .practical h2{font-size:clamp(32px,5vw,56px);max-width:760px;margin:0 auto 18px}
+  .practical p{font-size:18px;opacity:.94;max-width:520px;margin:0 auto 32px}
+  .btn-onbrand{background:#fff;color:var(--teal-deep)}.btn-onbrand:hover{transform:translateY(-2px);background:var(--green);color:#fff}
+
+  /* footer */
+  footer{background:var(--surface);border-top:1px solid var(--line);color:var(--muted);padding:60px 0 34px}
+  .f-top{display:flex;justify-content:space-between;flex-wrap:wrap;gap:30px;padding-bottom:32px;border-bottom:1px solid var(--line)}
+  .f-info{font-size:15px}.f-info a{color:var(--teal);font-weight:600}
+  .f-bottom{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-top:22px;font-size:14px}
+
+  @media(max-width:900px){
+    .grid4{grid-template-columns:repeat(2,1fr)}
+    .about-grid{grid-template-columns:1fr;gap:34px}
+    nav.main,.bar>.btn-primary{display:none}
+    .menu-toggle{display:block}.hero-meta{display:none}
+  }
+  @media(max-width:680px){
+    .grid4{grid-template-columns:1fr}
+    .slot{grid-template-columns:78px 1fr}
+    .slot .time{padding:14px 10px;font-size:13px}
+    .slot:not(.full){grid-template-columns:78px 1fr}
+    .slot:not(.full) .cell{grid-column:2;border-right:none}
+    .slot:not(.full) .cell.teknik{border-top:1px solid var(--line)}
+    .cell{padding:14px 16px}
+    section{padding:64px 0}.legend{gap:14px}.stat-row{gap:26px}
+  }
+</style>
+</head>
+<body>
+
+<header id="hdr">
+  <div class="wrap bar">
+    <a href="#" class="logo"><span class="mark">C</span> CBC<span style="color:var(--green)">·</span>Event</a>
+    <nav class="main">
+      <a href="#about">Forside</a><a href="#program">Program</a>
+      <a href="#practical">Praktisk info</a><a href="#vendors">Leverandører</a>
+      <a href="#">Tilmelding</a>
+    </nav>
+    <a href="#" class="btn btn-primary">Log ind</a>
+    <button class="menu-toggle" aria-label="Menu"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow reveal d1"><span class="dot"></span> Årets IT-konference · CBC IT</span>
+    <h1 class="reveal d2">CBC KickOff <span class="yr">2026</span></h1>
+    <div class="date reveal d3"><span class="serif">11. september</span> 2026</div>
+    <div class="loc reveal d3"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 1 1 14 0c0 5.5-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg> Munkebjerg Hotel · Munkebjergvej 136, 7100 Vejle</div>
+    <div class="cta-row reveal d4">
+      <a href="#" class="btn btn-primary">Tilmeld dig som deltager <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a href="#" class="btn btn-ghost">Tilmeld som leverandør</a>
+    </div>
+  </div>
+  <div class="hero-meta reveal d5"><span class="big">1</span><span class="lbl">dag · 2 spor</span></div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-tag">Hvad du får ud af dagen</div><h2>Fire grunde til at være med</h2></div>
+    <div class="grid4">
+      <div class="vp"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-6h6v6"/></svg></div><h3>Messestemning</h3><p>Mød markedets leverandører i et uformelt messeområde — se produkter, stil spørgsmål og netværk.</p></div>
+      <div class="vp"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v3"/></svg></div><h3>Keynotes</h3><p>Skarpe faglige oplæg fra branchens stærkeste stemmer, samlet på én scene.</p></div>
+      <div class="vp"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg></div><h3>Speed-dating</h3><p>Korte, effektive møder hvor du hurtigt finder de rette nye samarbejdspartnere.</p></div>
+      <div class="vp"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 11a4 4 0 1 0-8 0M3 21a6 6 0 0 1 18 0M8 21v-3M16 21v-3"/></svg></div><h3>Private møder</h3><p>Book fortrolige 1:1-møder med leverandører og deltagere i ro og mag.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="about" id="about">
+  <div class="wrap about-grid">
+    <div><div class="sec-tag">Om konferencen</div><p class="lead">En dag med faglige sessions, netværk og <span class="serif">1:1-møder</span> — samlet på ét sted.</p></div>
+    <div>
+      <p>CBC IT's årlige konference samler deltagere og leverandører til en dag fyldt med indsigt og relationer. To parallelle spor — Salg og Teknik — sikrer, at der er noget på programmet, uanset hvor du sidder i organisationen.</p>
+      <div class="stat-row">
+        <div class="stat"><div class="n">2</div><div class="l">parallelle spor</div></div>
+        <div class="stat"><div class="n">8+</div><div class="l">sessions & oplæg</div></div>
+        <div class="stat"><div class="n">1:1</div><div class="l">private møder</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="program">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-tag">Program</div><h2>Dagens forløb</h2></div>
+    <div class="day-label"><h3>Fredag</h3><span class="serif">11. september 2026</span></div>
+    <div class="legend">
+      <span><i style="background:var(--green)"></i> Salg</span>
+      <span><i style="background:var(--teal)"></i> Teknik</span>
+      <span><i style="background:var(--ink)"></i> Fælles</span>
+    </div>
+    <div class="sched">
+      <div class="slot full"><div class="time">09:00–09:30</div><div class="cell"><div class="ev">Ankomst og morgenmad</div><div class="room"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.5-7-11a7 7 0 1 1 14 0c0 5.5-7 11-7 11Z"/></svg>Foyeren</div></div></div>
+      <div class="slot full"><div class="time">09:30–10:00</div><div class="cell"><div class="ev">Velkomst v. Jan Nissen Petersen</div><div class="room">Scenen</div><div class="note">Jan jonglerer med sabler og sluger ild!</div></div></div>
+      <div class="slot"><div class="band"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> Messetid, møder og breakout sessions <span class="t">10:00–11:00</span></div></div>
+      <div class="slot">
+        <div class="time">10:00–10:30</div>
+        <div class="cell salg"><span class="track-tag salg">Salg</span><div class="ev">Breakout: Kold kanvas i en varm AI-æra</div><div class="room">Rød Stue</div></div>
+        <div class="cell teknik"><span class="track-tag teknik">Teknik</span><div class="ev">Breakout: Sådan tøjler du din AI</div><div class="room">Blå Stue</div></div>
+      </div>
+      <div class="slot">
+        <div class="time">10:30–11:00</div>
+        <div class="cell salg"><span class="track-tag salg">Salg</span><div class="ev">Demo: Sådan sælger du vand i Sahara</div><div class="room">Orange Scene</div><div class="note">Pistolsalg der aldrig fejler.</div><span class="host">Vært: Klaus Riskjær</span></div>
+        <div class="cell teknik"><span class="track-tag teknik">Teknik</span><div class="ev">Workshop: Hækl din egen firewall</div><div class="room">Hyggekælderen</div><div class="note">Craft møder tech.</div><span class="host">Vært: Frank Erichsen</span></div>
+      </div>
+      <div class="slot full"><div class="time">11:00–11:55</div><div class="cell"><div class="ev">Keynote: Sådan barberer du en ged</div><div class="room">Scenen</div></div></div>
+      <div class="slot full"><div class="time">12:00–13:00</div><div class="cell"><div class="ev">Frokost</div><div class="room">Frokoststuen</div><div class="note">Connies veganske skinkekutter serverer tempeh-hotdogs med bipollen.</div></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="vendors" id="vendors">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-tag">Leverandører</div><h2>Mød udstillerne</h2><p>Log ind for at anmode om et møde med en leverandør.</p></div>
+    <div class="vgrid">
+      <div class="vcard"><div class="vlogo">H</div><h3>Helt Nyt Firma A/S</h3><div class="rep">Vera Vendor</div><a href="#" class="req">Log ind for at anmode om møde <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+    </div>
+  </div>
+</section>
+
+<section class="practical" id="practical">
+  <div class="wrap">
+    <h2>Klar til at deltage?</h2>
+    <p>Find adresse, transport, parkering og info om mad &amp; drikke, før du tager afsted.</p>
+    <a href="#" class="btn btn-onbrand">Se praktisk info <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="f-top">
+      <div><a href="#" class="logo" style="color:var(--ink)"><span class="mark">C</span> CBC<span style="color:var(--green)">·</span>Event</a><p style="margin-top:14px;font-size:15px">CBC KickOff 2026 · 11. september 2026</p></div>
+      <div class="f-info">Kontakt:<br><a href="#">event@cbcit.dk</a></div>
+    </div>
+    <div class="f-bottom"><span>© 2026 CBC IT</span><span>Munkebjerg Hotel, Vejle</span></div>
+  </div>
+</footer>
+
+<script>
+  const hdr=document.getElementById('hdr');
+  addEventListener('scroll',()=>hdr.classList.toggle('scrolled',scrollY>30));
+</script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+/* ============================================================================
+   CBC KickOff 2026 — presentation styles
+   Wired to theme.json via --wp--preset--* custom properties.
+   Change tokens in theme.json and these styles follow automatically.
+   (Hex fallbacks included only so the file previews outside WordPress.)
+   ============================================================================ */
+
+:root{
+	--ink:        var(--wp--preset--color--ink, #16201F);
+	--ink-soft:   var(--wp--preset--color--ink-soft, #3A4744);
+	--paper:      var(--wp--preset--color--paper, #F7F8F6);
+	--surface:    var(--wp--preset--color--surface, #FFFFFF);
+	--line:       var(--wp--preset--color--line, #E5E9E5);
+	--muted:      var(--wp--preset--color--muted, #69736F);
+	--teal:       var(--wp--preset--color--teal, #14798A);
+	--teal-deep:  var(--wp--preset--color--teal-deep, #0E5C6A);
+	--teal-wash:  var(--wp--preset--color--teal-wash, #E2F0F2);
+	--green:      var(--wp--preset--color--green, #5BAE3A);
+	--green-deep: var(--wp--preset--color--green-deep, #3F8A27);
+	--green-wash: var(--wp--preset--color--green-wash, #E9F4E3);
+	--ff-display: var(--wp--preset--font-family--bricolage, "Bricolage Grotesque", sans-serif);
+	--ff-body:    var(--wp--preset--font-family--hanken, "Hanken Grotesk", sans-serif);
+	--ff-serif:   var(--wp--preset--font-family--instrument, "Instrument Serif", serif);
+	--radius: 14px;
+	--ease: cubic-bezier(.2,.7,.2,1);
+}
+
+/* ---- shared helpers -------------------------------------------------------- */
+.cbc-serif{ font-family:var(--ff-serif); font-style:italic; }
+.cbc-section{ padding-block: clamp(64px,9vw,96px); }
+.cbc-sec-tag{ font-size:13px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--teal); display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.cbc-sec-tag::before{ content:""; width:26px; height:2px; background:currentColor; }
+.cbc-sec-tag.is-green{ color:var(--green-deep); }
+
+.cbc-btn-arrow svg{ width:16px; height:16px; }
+
+/* ---- hero ------------------------------------------------------------------ */
+.cbc-hero{ position:relative; overflow:hidden; padding-block:92px 100px; }
+.cbc-hero::before{ content:""; position:absolute; inset:0; z-index:0; background:
+	linear-gradient(180deg,var(--surface),transparent 55%),
+	radial-gradient(52% 60% at 88% 6%,var(--teal-wash),transparent 68%),
+	radial-gradient(48% 58% at 2% 100%,var(--green-wash),transparent 70%); }
+.cbc-hero > *{ position:relative; z-index:2; }
+.cbc-eyebrow{ display:inline-flex; align-items:center; gap:9px; font-size:13px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--ink); background:var(--surface); border:1px solid var(--line); padding:7px 15px; border-radius:999px; box-shadow:0 4px 14px -8px rgba(22,32,31,.25); }
+.cbc-eyebrow::before{ content:""; width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 4px var(--green-wash); }
+.cbc-hero h1{ font-family:var(--ff-display); font-weight:800; letter-spacing:-.045em; line-height:1.02; margin:26px 0 6px; }
+.cbc-hero h1 .cbc-year{ color:var(--teal); }
+.cbc-hero .cbc-date{ font-family:var(--ff-display); font-weight:600; color:var(--ink-soft); }
+.cbc-hero .cbc-date .cbc-serif{ color:var(--green-deep); font-weight:400; }
+.cbc-hero .cbc-loc{ display:inline-flex; align-items:center; gap:9px; color:var(--muted); margin-top:24px; }
+.cbc-hero .cbc-cta-row{ display:flex; flex-wrap:wrap; gap:14px; margin-top:40px; }
+
+/* ---- value props ----------------------------------------------------------- */
+.cbc-vp-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:18px; }
+.cbc-vp{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:30px 26px; position:relative; overflow:hidden; transition:transform .35s var(--ease),box-shadow .35s var(--ease),border-color .35s; }
+.cbc-vp::after{ content:""; position:absolute; left:0; top:0; height:3px; width:0; background:var(--teal); transition:width .4s var(--ease); }
+.cbc-vp:hover{ transform:translateY(-6px); box-shadow:0 24px 44px -26px rgba(22,32,31,.4); border-color:transparent; }
+.cbc-vp:hover::after{ width:100%; }
+.cbc-vp .cbc-ic{ width:46px; height:46px; border-radius:12px; background:var(--teal-wash); color:var(--teal); display:grid; place-items:center; margin-bottom:20px; }
+.cbc-vp h3{ font-family:var(--ff-display); font-size:21px; margin-bottom:9px; }
+.cbc-vp p{ font-size:15px; color:var(--muted); line-height:1.55; margin:0; }
+.cbc-vp:nth-child(2) .cbc-ic,.cbc-vp:nth-child(4) .cbc-ic{ background:var(--green-wash); color:var(--green-deep); }
+.cbc-vp:nth-child(2)::after,.cbc-vp:nth-child(4)::after{ background:var(--green); }
+
+/* ---- about ----------------------------------------------------------------- */
+.cbc-about{ background:var(--surface); border-block:1px solid var(--line); }
+.cbc-about .cbc-lead{ font-family:var(--ff-display); font-weight:600; line-height:1.18; letter-spacing:-.02em; }
+.cbc-about .cbc-lead .cbc-serif{ color:var(--teal); font-weight:400; }
+.cbc-stats{ display:flex; gap:40px; margin-top:30px; flex-wrap:wrap; }
+.cbc-stat .n{ font-family:var(--ff-display); font-weight:800; font-size:40px; letter-spacing:-.03em; }
+.cbc-stat:nth-child(2) .n{ color:var(--teal); }
+.cbc-stat:nth-child(3) .n{ color:var(--green-deep); }
+.cbc-stat .l{ font-size:14px; color:var(--muted); }
+
+/* ---- program --------------------------------------------------------------- */
+.cbc-legend{ display:flex; gap:22px; flex-wrap:wrap; margin-bottom:26px; }
+.cbc-legend span{ display:inline-flex; align-items:center; gap:8px; font-size:14px; font-weight:600; color:var(--ink-soft); }
+.cbc-legend i{ width:12px; height:12px; border-radius:3px; }
+.cbc-day{ display:flex; align-items:baseline; gap:14px; margin-bottom:18px; }
+.cbc-day h3{ font-family:var(--ff-display); font-size:26px; }
+.cbc-day .cbc-serif{ font-size:24px; color:var(--muted); }
+.cbc-sched{ border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; background:var(--surface); box-shadow:0 30px 60px -50px rgba(22,32,31,.5); }
+.cbc-slot{ display:grid; grid-template-columns:128px 1fr 1fr; border-top:1px solid var(--line); }
+.cbc-slot:first-child{ border-top:none; }
+.cbc-slot .cbc-time{ padding:20px; font-weight:700; font-size:15px; border-right:1px solid var(--line); background:var(--paper); }
+.cbc-cell{ padding:18px 22px; border-right:1px solid var(--line); }
+.cbc-cell:last-child{ border-right:none; }
+.cbc-cell .ev{ font-family:var(--ff-display); font-weight:600; font-size:16px; display:flex; gap:9px; }
+.cbc-cell .ev::before{ content:""; width:3px; border-radius:3px; flex:none; align-self:stretch; background:var(--ink); }
+.cbc-cell.is-salg .ev::before{ background:var(--green); }
+.cbc-cell.is-teknik .ev::before{ background:var(--teal); }
+.cbc-cell .room{ font-size:13px; color:var(--muted); margin-top:5px; display:flex; align-items:center; gap:6px; }
+.cbc-cell .note{ font-size:13px; color:var(--ink-soft); font-style:italic; margin-top:8px; opacity:.9; }
+.cbc-cell .host{ display:inline-block; font-size:12px; font-weight:600; margin-top:8px; padding:2px 9px; border-radius:999px; background:var(--paper); }
+.cbc-slot.is-full .cbc-cell{ grid-column:2 / -1; display:flex; flex-direction:column; justify-content:center; }
+.cbc-band{ grid-column:1 / -1; padding:13px 22px; background:var(--teal-wash); color:var(--teal-deep); font-family:var(--ff-display); font-weight:700; font-size:14px; letter-spacing:.03em; display:flex; align-items:center; gap:12px; }
+.cbc-band .t{ margin-left:auto; font-family:var(--ff-body); font-weight:600; color:var(--ink-soft); font-size:13px; opacity:.8; }
+.cbc-track{ font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:3px 9px; border-radius:5px; margin-bottom:7px; display:inline-block; }
+.cbc-track.is-salg{ background:var(--green-wash); color:var(--green-deep); }
+.cbc-track.is-teknik{ background:var(--teal-wash); color:var(--teal-deep); }
+
+/* ---- vendors --------------------------------------------------------------- */
+.cbc-vendors{ background:var(--paper); }
+.cbc-vgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px; }
+.cbc-vcard{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:26px; transition:.3s var(--ease); }
+.cbc-vcard:hover{ transform:translateY(-5px); box-shadow:0 24px 44px -28px rgba(22,32,31,.4); }
+.cbc-vcard .vlogo{ width:52px; height:52px; border-radius:50%; background:linear-gradient(135deg,var(--teal),var(--green)); color:#fff; display:grid; place-items:center; font-family:var(--ff-display); font-weight:800; font-size:22px; margin-bottom:18px; }
+.cbc-vcard h3{ font-family:var(--ff-display); font-size:19px; }
+.cbc-vcard .rep{ font-size:14px; color:var(--muted); margin:4px 0 16px; }
+.cbc-vcard a.req{ font-size:14px; font-weight:600; color:var(--teal); display:inline-flex; align-items:center; gap:6px; }
+.cbc-vcard a.req:hover{ gap:10px; }
+
+/* ---- CTA block (the brand-texture moment) ---------------------------------- */
+.cbc-cta{ background:var(--teal); color:#fff; text-align:center; position:relative; overflow:hidden; }
+.cbc-cta::after{ content:""; position:absolute; inset:0; opacity:.5; background:
+	repeating-linear-gradient(0deg,rgba(255,255,255,.10) 0 1.5px,transparent 1.5px 10px);
+	-webkit-mask-image:radial-gradient(60% 100% at 50% 0%,#000,transparent 70%);
+	        mask-image:radial-gradient(60% 100% at 50% 0%,#000,transparent 70%); }
+.cbc-cta > *{ position:relative; z-index:2; }
+.cbc-cta h2{ font-family:var(--ff-display); color:#fff; max-width:760px; margin:0 auto 18px; }
+.cbc-cta p{ font-size:18px; opacity:.94; max-width:520px; margin:0 auto 32px; }
+.cbc-cta .wp-block-button__link{ background:#fff; color:var(--teal-deep); }
+.cbc-cta .wp-block-button__link:hover{ background:var(--green); color:#fff; }
+
+/* ---- reveal-on-load -------------------------------------------------------- */
+@media (prefers-reduced-motion:no-preference){
+	.cbc-reveal{ opacity:0; transform:translateY(22px); animation:cbc-rise .9s var(--ease) forwards; }
+	.cbc-reveal.d2{ animation-delay:.12s; } .cbc-reveal.d3{ animation-delay:.24s; }
+	.cbc-reveal.d4{ animation-delay:.36s; } .cbc-reveal.d5{ animation-delay:.48s; }
+	@keyframes cbc-rise{ to{ opacity:1; transform:none; } }
+}
+
+/* ---- responsive ------------------------------------------------------------ */
+@media (max-width:900px){
+	.cbc-vp-grid{ grid-template-columns:repeat(2,1fr); }
+}
+@media (max-width:680px){
+	.cbc-vp-grid{ grid-template-columns:1fr; }
+	.cbc-slot,.cbc-slot.is-full{ grid-template-columns:78px 1fr; }
+	.cbc-slot .cbc-time{ padding:14px 10px; font-size:13px; }
+	.cbc-slot .cbc-cell{ grid-column:2; border-right:none; }
+	.cbc-slot .cbc-cell.is-teknik{ border-top:1px solid var(--line); }
+	.cbc-cell{ padding:14px 16px; }
+}
+
+/* ---- finishing touches (parity with approved design) ----------------------- */
+.cbc-sec-head{ max-width:680px; margin-bottom:54px; }
+.cbc-sec-head p:not(.cbc-sec-tag){ color:var(--muted); font-size:18px; margin-top:16px; }
+
+/* location pin */
+.cbc-loc::before{ content:""; width:18px; height:18px; flex:none;
+	background:currentColor; -webkit-mask:no-repeat center/contain; mask:no-repeat center/contain;
+	-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M12 21s-7-5.5-7-11a7 7 0 1 1 14 0c0 5.5-7 11-7 11Z'/%3E%3Ccircle cx='12' cy='10' r='2.5'/%3E%3C/svg%3E");
+	        mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M12 21s-7-5.5-7-11a7 7 0 1 1 14 0c0 5.5-7 11-7 11Z'/%3E%3Ccircle cx='12' cy='10' r='2.5'/%3E%3C/svg%3E"); }
+
+/* arrow on the primary hero CTA */
+.cbc-cta-row .wp-block-button:not(.is-style-outline) .wp-block-button__link::after{ content:"→"; margin-left:8px; font-weight:700; }
+
+/* outline button = ink ghost */
+.is-style-outline .wp-block-button__link,
+.cbc-cta-row .is-style-outline .wp-block-button__link{
+	background:transparent; color:var(--ink); border:1.5px solid var(--ink); }
+.is-style-outline .wp-block-button__link:hover{ background:var(--ink); color:var(--paper); }
+
+/* feature-card icon svg sizing inside core/html */
+.cbc-ic svg{ width:22px; height:22px; }
+
+/* program inner type already styled; ensure html-block children inherit body font */
+.cbc-sched, .cbc-legend, .cbc-day{ font-family:var(--ff-body); }
