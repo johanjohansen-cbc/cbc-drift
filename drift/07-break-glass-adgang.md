@@ -225,12 +225,12 @@ Serveren kan genskabes; men disse eksterne tjenester er kritiske og skal kontrol
 
 Den løbende drift er dokumenteret to steder:
 
-* **`_handover/drift/00–06`** — den samlede tekniske driftsmanual for HELE serveren
-  (arkitektur, firewall, CF-lag, alle tre sites, backup, runbooks, gotchas).
-  Verificeret mod live server + Cloudflare 2026-07-20. **Start dér.**
-  ⚠️ Ligger pt. kun på Johans laptop — skal versioneres i det private GitHub-repo
-  (åbent punkt), ellers er den utilgængelig i netop det scenarie, dette dokument
-  handler om.
+* **`drift/00–06` i dette repo** — den samlede tekniske driftsmanual for HELE
+  serveren (arkitektur, firewall, CF-lag, alle tre sites, backup, runbooks,
+  gotchas). Verificeret mod live server + Cloudflare 2026-07-20. **Start dér.**
+  Kanonisk hjem: privat GitHub-repo **`johanjohansen-cbc/cbc-drift`** (dette
+  dokument ligger samme sted — arbejdskopi i `app/public/_handover/` på Johans
+  Local-maskine).
 * Plugin-repoets `docs/`-mappe — applikations-/deploy-nære dokumenter:
 
 * **`docs/05-deploy-workflow.md`** — komplet deploy-procedure. Kort: lokalt `git push both main` (skubber til både bare repo OG GitHub-mirror), derefter på serveren som root `bash <plugindir>/deploy.sh` (laver backup → pull → chown → db-migrate → php-fpm reload → verifikation). Tema deployes FØR plugin.

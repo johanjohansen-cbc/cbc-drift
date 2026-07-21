@@ -103,10 +103,12 @@ adgangskæde. Det ligger **uden for git** (bevidst).
   `/root/cbc-deploy-creds.txt` på serveren. Der findes desuden en ledsagende
   **LLM-guide-prompt** (`07-break-glass-llm-guide-prompt.md`) der kan føre en
   efterfølger igennem overtagelsen skridt for skridt.
-- **Placering (pr. 2026-07-20):** `C:\TMP` på Johans laptop — **midlertidig
-  arbejdskopi** (revideret 2026-07-20, post-prod-dag). ⚠️ Skal flyttes til varig,
-  laptop-uafhængig placering: privat GitHub-repo (dokumentet er "fortroligt, men
-  ikke hemmeligt" by design) + opdateret print i pengeskabet (jf. 07 §11).
+- **Placering (pr. 2026-07-20, flytning gennemført):** Kanonisk i
+  **`drift/07-break-glass-adgang.md` i dette repo** (privat GitHub:
+  `johanjohansen-cbc/cbc-drift`) + **print-udgave** (`07-break-glass-adgang.docx`,
+  9 sider) til pengeskabet. C:\TMP-arbejdskopierne er slettet efter
+  diff-verifikation. ☐ Udestår: Johan printer .docx'en og udskifter det
+  forældede print i pengeskabet.
 - **Dækning i 07 pr. system** (efter revisionen 2026-07-20 — "☐ vault" =
   beskrevet i 07, men selve credential-entry'en i Roboform skal verificeres/oprettes,
   jf. 07 §2-tjeklisten og §12-drillen):
