@@ -31,6 +31,7 @@ Denne mappe (`_handover/drift/`) er den **samlede driftsmanual for hele serveren
 | **04-drift.md** | Deploy & release · cron/baggrundsjobs · mail (Brevo) · logs/overvågning |
 | **05-backup-og-gendannelse.md** | Plesk→OneDrive · snapshots · restore-drill · RTO/RPO |
 | **06-runbooks-og-laerdomme.md** | Trin-for-trin-runbooks · kendte gotchas · disaster recovery |
+| **tools/web-exposure-check.sh** | Ekstern smoke-test: interne filer (docs/ m.m.) blokeret + site OK — kør efter restore/migrering |
 
 **Relaterede, allerede eksisterende dokumenter** (i plugin-repoet — mere
 applikations-/deploy-nære, refereres herfra frem for at blive dupliceret):

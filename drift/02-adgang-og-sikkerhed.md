@@ -210,6 +210,59 @@ define('WP_POST_REVISIONS', 10);
   CF-Connecting-IP` (så logs/rate-limits ser den ægte besøger, ikke CF).
 - **Origin-guard:** `if ($cbc_origin_not_trusted) { return 403; }` (se §6).
 
+**Verbatim kilde** (dump af `/var/www/vhosts/system/event.cbcit.dk/conf/vhost_nginx.conf`,
+2026-07-21 — det Plesk genererer af "Additional nginx directives"). Ved migrering
+væk fra Plesk: kopiér blokken ind i den nye vhost/server-blok som den står
+(origin-guard-linjen kræver desuden geo-blokken fra §6; real_ip-listen skal
+holdes ajour med Cloudflares offentliggjorte ranges):
+
+```nginx
+# CBC E-4 — HTTP security-headers
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header X-Frame-Options "SAMEORIGIN" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+# CBC 10.11 — anti-indeksering (semi-privat site, må ikke i søgeresultater).
+# Server-niveau noindex der også dækker ikke-HTML (Dompdf-PDF, wp-json, assets)
+# og overlever plugin/tema-ændringer. Supplerer WP blog_public=0 (meta + robots.txt).
+add_header X-Robots-Tag "noindex, nofollow" always;
+
+# CBC E-2 — S2-hardening: blokér interne dev-filer i plugin-dir
+location ~* ^/wp-content/plugins/cbc-event-planner/(docs|tools|tests)/ { return 404; }
+location ~* ^/wp-content/plugins/cbc-event-planner/.*\.(md|sh|lock|dist)$ { return 404; }
+location ~* ^/wp-content/plugins/cbc-event-planner/composer\.json$ { return 404; }
+
+# CBC proxy-migration (2026-06-05) — restore real visitor IP behind Cloudflare
+set_real_ip_from 173.245.48.0/20;
+set_real_ip_from 103.21.244.0/22;
+set_real_ip_from 103.22.200.0/22;
+set_real_ip_from 103.31.4.0/22;
+set_real_ip_from 141.101.64.0/18;
+set_real_ip_from 108.162.192.0/18;
+set_real_ip_from 190.93.240.0/20;
+set_real_ip_from 188.114.96.0/20;
+set_real_ip_from 197.234.240.0/22;
+set_real_ip_from 198.41.128.0/17;
+set_real_ip_from 162.158.0.0/15;
+set_real_ip_from 104.16.0.0/13;
+set_real_ip_from 104.24.0.0/14;
+set_real_ip_from 172.64.0.0/13;
+set_real_ip_from 131.0.72.0/22;set_real_ip_from 2400:cb00::/32;
+set_real_ip_from 2606:4700::/32;
+set_real_ip_from 2803:f800::/32;
+set_real_ip_from 2405:b500::/32;
+set_real_ip_from 2405:8100::/32;
+set_real_ip_from 2a06:98c0::/29;
+set_real_ip_from 2c0f:f248::/32;real_ip_header CF-Connecting-IP;
+
+# CBC origin-bypass-vaern (geo i /etc/nginx/conf.d/cbc-origin-guard.conf)
+if ($cbc_origin_not_trusted) { return 403; }
+```
+
+> **Vedligehold:** ændres direktiverne i Plesk, opdatér dumpet her i samme
+> ombæring. Verificér effekten udefra med `tools/web-exposure-check.sh` (se §8).
+
 ### 7.3 `.git`-eksponering (S1) — verificeret lukket
 
 `.git/` i plugin-mappen returnerer **403** udefra (testet via CF 2026-07-20).
@@ -233,4 +286,5 @@ ssh cbc-prod 'nft list table inet cbc_fw'
 ssh cbc-prod 'systemctl is-active cloudflared fail2ban; fail2ban-client status'
 ssh cbc-prod 'cat /etc/nginx/conf.d/cbc-origin-guard.conf'
 ssh cbc-prod 'curl -sI -A Mozilla https://event.cbcit.dk/wp-content/plugins/cbc-event-planner/.git/config | head -1'  # → 403
+bash drift/tools/web-exposure-check.sh   # ekstern S2-verifikation: docs/ m.m. blokeret, site OK (exit 0 = alt grønt)
 ```

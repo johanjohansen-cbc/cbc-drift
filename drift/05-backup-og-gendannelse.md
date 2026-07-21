@@ -69,6 +69,11 @@ su -s /bin/bash event.cbcit.dk_x3pjx5okzbn -c "…/wp db import /var/backups/cbc
    via Backup Manager (Remote Storage). Kræver OneDrive-login (07) + evt.
    re-pointing af DNS/firewall/tunnel.
 3. **Kode** hentes uafhængigt fra GitHub-mirror (se `docs/05 §14.4`).
+4. **Efter gendannelse (og efter enhver migrering væk fra Plesk):** kør
+   `drift/tools/web-exposure-check.sh` — verificerer udefra at S2-dev-fil-
+   blokeringen (docs/ m.m.) stadig er aktiv. Reglerne bor i server-config,
+   ikke i plugin-repoet, og forsvinder LYDLØST hvis de ikke genindsættes
+   (verbatim-kilde: 02-adgang §7.2).
 
 > **⚠️ Fra break-glass (08):** gendan ALDRIG en backup/snapshot på egen hånd i
 > panik — det kan overskrive nyeste data. Ved tvivl: kontakt Johan / følg 08.
@@ -82,6 +87,9 @@ scratch-server og verificeres — så vi ved at backups virker, ikke bare at de 
 
 - **Runbook:** ‹UDFYLD: link til restore-drill-runbook› (scratch-CX-server →
   gendan fra OneDrive → verificér → slet samme dag).
+- **Verifikation under drillen skal inkludere** `drift/tools/web-exposure-check.sh`
+  mod scratch-serveren (`BASE=https://<scratch-host> bash web-exposure-check.sh`) —
+  tester at nginx-direktiverne (02-adgang §7.2) fulgte med gendannelsen.
 - **Status:** booket **tirsdag 2026-08-18** — skal gennemføres før september.
 - **Efter drill:** notér resultat + faktisk RTO i dette dok.
 
