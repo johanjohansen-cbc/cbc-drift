@@ -1,0 +1,2 @@
+# Bash-scripts skal ALTID have LF — CRLF knaekker dem paa Linux ( i shebang/kommandoer)
+*.sh text eol=lf
