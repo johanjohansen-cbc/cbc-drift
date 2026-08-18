@@ -107,7 +107,7 @@ applikations-/deploy-nære, refereres herfra frem for at blive dupliceret):
 | **Sites** | `event.cbcit.dk` (CBC Event Planner) · `cbcit.dk` (**WP + WooCommerce-webshop, QuickPay-betalinger**) · `datagaarden.dk` (selvstændigt WP) |
 | **Stack** | nginx 1.30 → Apache 2.4 → PHP 8.4 · MariaDB 10.11 · WordPress 7.0.1 |
 | **Mail** | Udgående via Brevo (`smtp-relay.brevo.com:587`) |
-| **Backup** | Plesk daglig 00:00 → Microsoft OneDrive (rotation 7, ugentlig fuld) |
+| **Backup** | Plesk daglig 00:12 → Microsoft OneDrive (rotation 7, ugentlig fuld); **password-krypteret fra 2026-08-18** (password i password manager, kræves ved restore); gendannelse BEVIST ved restore-drill 2026-08-18 (05 §3.1) |
 | **Deploy** | `git push both main` fra laptop → `deploy.sh`/`deploy-theme.sh` på server (se 04-drift) |
 | **Break-glass** | Alle logins/credentials: dokument **07** (‹UDFYLD sted›) |
 

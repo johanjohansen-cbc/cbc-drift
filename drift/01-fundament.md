@@ -16,7 +16,7 @@ kun *hvad* kontoen er og *hvad* den bruges til.
 | **Hetzner Cloud** | Serverhotel (vServer + snapshots) | Projekt m. server `server.cbcit.dk` (`cbc-server` i konsollen) | 07 |
 | **Cloudflare** | DNS + proxy + WAF + Zero-Trust Access + Tunnel | Konto **"CBC IT v2"** | 07 |
 | **Brevo** | Udgående SMTP-relay (transaktionsmail) | SMTP-konto, relay `smtp-relay.brevo.com:587` | 07 |
-| **Microsoft OneDrive** | Off-site backup-destination (via Plesk-extension) | Konto koblet i Plesk → OneDrive Backup | 07 |
+| **Microsoft OneDrive** | Off-site backup-destination (via Plesk-extension) | **Johans personlige** virksomheds-konto (johan@cbcit.dk), mappe `server.cbcit.dk` — ⚠️ personbundet, servicekonto-flytning besluttet som followup (05 §1.1) | 07 |
 | **GitHub** | Privat kode-mirror (`cbc-event-planner`, `cbc-child`) | Bruger `johanjohansen-cbc` (private repos) | 07 |
 | **Domæneregistrar** | Registrering af `cbcit.dk`, `datagaarden.dk` | **Simply.com** (Johan-verificeret 2026-07-20; 07 angav tidligere fejlagtigt punktum.dk) | 07 |
 | **Kent / LB-leverandør** | Ekstern load balancer foran `datagaarden.dk` | LB-IP'er `185.21.232.10-12` · kontakt ‹UDFYLD Kent› | — |
