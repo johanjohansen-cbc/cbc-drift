@@ -51,19 +51,19 @@ applikations-/deploy-nære, refereres herfra frem for at blive dupliceret):
 ```
                                 Internet
                                    │
-                 ┌─────────────────┴──────────────────┐
-                 │                                    │
-     ┌───────────▼────────────┐          ┌────────────▼────────────┐
-     │  Cloudflare             │          │  Kents load balancer    │
-     │  (konto "CBC IT v2")    │          │  185.21.232.10-12        │
-     │  · event.cbcit.dk       │          │  · datagaarden.dk        │
-     │  · cbcit.dk             │          │  (KENTS-LB-TEMP, WIP)    │
-     │  proxy + WAF + Access   │          │  Plesk-DNS, ej Cloudflare │
-     │  CF = authoritative DNS │          │  Wordfence som WAF        │
-     └───────────┬────────────┘          └────────────┬────────────┘
-                 │ kun CF-IP'er på 80/443              │ kun LB-IP'er på 443
-                 └────────────────┬───────────────────┘
-                                  │
+                    ┌──────────────▼──────────────┐
+                    │  Cloudflare                  │
+                    │  (konto "CBC IT v2")         │
+                    │  · event.cbcit.dk            │
+                    │  · cbcit.dk                  │
+                    │  · datagaarden.dk (+IDN)     │
+                    │    ↳ CF for SaaS →           │
+                    │      sites.cbcit.dk          │
+                    │  proxy + WAF + Access        │
+                    │  CF = auth. DNS (cbcit.dk);  │
+                    │  datagaarden-DNS hos wwi     │
+                    └──────────────┬──────────────┘
+                                   │ kun CF-IP'er på 80/443
                     ┌─────────────▼──────────────┐
                     │  Hetzner vServer            │
                     │  server.cbcit.dk            │
@@ -85,14 +85,17 @@ applikations-/deploy-nære, refereres herfra frem for at blive dupliceret):
                                   └──────────────┘
 ```
 
-**To fronting-modeller på samme boks** — hold dem adskilt i hovedet:
+**Én fronting-model for alle sites** (siden 2026-08-26 — før da kørte
+`datagaarden.dk` midlertidigt bag Kents LB, "SPOR B-broen", nedlagt 2026-08-27):
 
 1. **Cloudflare-sporet** (`event.cbcit.dk`, `cbcit.dk`): al web-trafik gennem
    Cloudflare. Firewallen slipper kun Cloudflares IP-ranges ind på 80/443, og
    `cbc-origin-guard` afviser (403) enhver origin-anmodning der ikke kom via CF.
-2. **Kent-LB-sporet** (`datagaarden.dk`): selvstændigt WordPress-site frontet af
-   en ekstern load balancer (Kent), **ikke** Cloudflare. Bruger Plesk's egen DNS,
-   er bevidst undtaget origin-guarden, og beskyttes af Wordfence på app-niveau.
+2. **CF-for-SaaS-varianten** (`datagaarden.dk` + `datagården.dk`): selvstændigt
+   WordPress-site med DNS hos **wwi** (ikke CF). www-CNAME'er + apex-ANAME'er
+   peger på `sites.cbcit.dk` i cbcit.dk-zonen; CF "for SaaS" custom hostnames
+   terminerer TLS og proxier til samme origin. Samme firewall- og origin-guard-
+   beskyttelse som sporet ovenfor + Wordfence på app-niveau.
 
 ---
 
@@ -129,9 +132,10 @@ Disse er indbygget i setuppet. Brydes de, går noget i stykker — ofte stille.
 3. **`event.cbcit.dk`/`cbcit.dk` må kun nås via Cloudflare.** Firewallen +
    `cbc-origin-guard` håndhæver det. Rør ikke ved reglerne uden at forstå
    begge lag (se 02-adgang §firewall + §origin-guard).
-4. **`datagaarden.dk` er undtaget origin-guarden med vilje** (nås via Kents LB).
-   Tilføj den ALDRIG til origin-guarden, og fjern ikke `KENTS-LB-TEMP`-firewall-
-   reglen uden at koordinere med Kent.
+4. **`datagaarden.dk` er OGSÅ bag Cloudflare og origin-guarden** (siden
+   2026-08-26/27; den historiske LB-undtagelse og `KENTS-LB-TEMP`-firewall-reglen
+   er nedlagt). Custom-hostname-opsætningen bor i cbcit.dk-zonens
+   "SSL for SaaS" — slet aldrig `sites.cbcit.dk`-recorden, den er fallback-origin.
 5. **Deploy sker via `git push both`** (prod bare repo + GitHub-mirror) — ikke
    direkte fil-redigering på serveren. Se 04-drift.
 6. **DB-dumps i `/var/backups/cbc-pre-deploy/` indeholder PII** (password-hashes,

@@ -14,7 +14,7 @@
 | **SSH** | `ssh cbc-prod` → port 22 (root) | SSH-nøgle (key-only) | Password-auth slået fra. Alias i laptoppens `~/.ssh/config`. |
 | **Plesk-panel** | `https://server.cbcit.dk:8443` | Plesk-login **bag Cloudflare Access** | Port 8443 er **ikke** firewall-åben — kun via CF Tunnel. |
 | **WP-admin (event)** | `https://event.cbcit.dk/wp-admin/` | WP-login (+ magic-link for deltagere) | Bag Cloudflare. `FORCE_SSL_ADMIN=true`. |
-| **WP-admin (datagaarden)** | `https://datagaarden.dk/wp-admin/` | WP-login | Bag Kents LB. Wordfence aktiv. |
+| **WP-admin (datagaarden)** | `https://datagaarden.dk/wp-admin/` | WP-login | Bag Cloudflare (CF for SaaS, siden 2026-08-26). Wordfence aktiv. |
 | **Cloudflare-dashboard** | `dash.cloudflare.com` (konto CBC IT v2) | CF-login (2FA) | DNS/WAF/Access/Tunnel-styring. |
 | **Hetzner-konsol** | `console.hetzner.cloud` | Hetzner-login (2FA) | Power-cycle, snapshots. |
 
@@ -57,15 +57,21 @@ ct state established,related accept
 ct state invalid drop
 icmp / ipv6-icmp accept
 tcp dport 22 accept                          # SSH — offentlig, key-only
+tcp dport 80 counter accept                  # ACME-HTTP01-OPEN (2026-08-17)
 ip  saddr @cf4 tcp dport { 80, 443 } accept  # web kun fra Cloudflare (v4)
 ip6 saddr @cf6 tcp dport { 80, 443 } accept  # web kun fra Cloudflare (v6)
-ip  saddr { 185.21.232.10, .11, .12 } tcp dport 443 accept  # KENTS-LB-TEMP
 ```
 
-- `@cf4`/`@cf6` = **alle Cloudflare IP-ranges** (named sets). Web-origin er dermed
-  låst til Cloudflare — ingen kan ramme 80/443 direkte udenom CF.
-- **`KENTS-LB-TEMP`** = de tre Kent-LB-IP'er, åbnet på 443 for `datagaarden.dk`.
-  Markeret midlertidig; `counter 0` pr. 2026-07-20 (ingen trafik endnu — WIP).
+(Afspejler live-ruleset pr. 2026-08-27.)
+
+- `@cf4`/`@cf6` = **alle Cloudflare IP-ranges** (named sets). **443** er dermed
+  låst til Cloudflare — ingen kan ramme HTTPS-origin direkte udenom CF.
+- **Port 80 er åben for ALLE kilde-IP'er siden 2026-08-17** (`ACME-HTTP01-OPEN`):
+  Let's Encrypt publicerer ikke sine validerings-IP'er, så HTTP-01-fornyelse
+  kræver åben port 80. Port 80 serverer kun redirects + ACME-challenges.
+- **`KENTS-LB-TEMP` (185.21.232.10-12 på 443) er FJERNET 2026-08-27** efter
+  DNS-flip af datagaarden.dk til CF for SaaS 2026-08-26 (backup af den gamle fil:
+  `/etc/nftables.d/cbc_fw.nft.pre-lb-cleanup`).
 - **8443 (Plesk) er bevidst IKKE i input** → panelet kan kun nås via CF Tunnel.
 
 ### 3.2 Output-chain (policy DROP — egress-hærdning)
@@ -163,18 +169,20 @@ udp/tcp 7844      (Cloudflare Tunnel til CF's edge)
 ## 6. Origin-bypass-værn (`cbc-origin-guard.conf`)
 
 Fil: `/etc/nginx/conf.d/cbc-origin-guard.conf` (oprettet 2026-07-20 i forbindelse
-med datagaarden-LB-sporet).
+med datagaarden-LB-sporet — beholdt permanent efter LB-broens nedlukning).
 
-- **Problem det løser:** når firewallen åbnes for Kents LB på 443, kan LB-IP'erne
-  teknisk sende *enhver* Host-header til origin — også `Host: event.cbcit.dk`.
-  Firewallen kan ikke filtrere på Host.
+- **Problem det løste oprindeligt:** mens firewallen var åben for Kents LB på 443,
+  kunne LB-IP'erne teknisk sende *enhver* Host-header til origin — også
+  `Host: event.cbcit.dk`. Firewallen kan ikke filtrere på Host. I dag fungerer
+  guarden som generelt bælte-og-seler-lag oven på firewallen (fanger fx trafik
+  der slipper ind via den ACME-åbne port 80 og videresendes internt).
 - **Mekanik:** en nginx `geo`-blok på `$realip_remote_addr` (den **rå** TCP-peer,
   upåvirket af `set_real_ip_from`) sætter `$cbc_origin_not_trusted = 1` for enhver
   peer der **ikke** er Cloudflare, loopback eller egen origin-IP.
 - **Håndhæves** i `event.cbcit.dk` + `cbcit.dk` via deres nginx additional
-  directives: `if ($cbc_origin_not_trusted) { return 403; }`.
-- **`datagaarden.dk` er bevidst undtaget** (har ingen additional directives) — den
-  skal netop kunne nås af Kents LB.
+  directives, og **siden 2026-08-27 også i `datagaarden.dk`** (vhost_nginx.conf,
+  sammen med CF-real-ip-blokken): `if ($cbc_origin_not_trusted) { return 403; }`.
+  Den historiske LB-undtagelse er dermed nedlagt.
 
 > **Rør ikke** ved geo-listen uden at opdatere den mod Cloudflares aktuelle
 > IP-ranges (samme liste som cbc_fw's `@cf4/@cf6`).
@@ -262,6 +270,21 @@ if ($cbc_origin_not_trusted) { return 403; }
 
 > **Vedligehold:** ændres direktiverne i Plesk, opdatér dumpet her i samme
 > ombæring. Verificér effekten udefra med `tools/web-exposure-check.sh` (se §8).
+
+### 7.2b nginx additional directives (datagaarden.dk) — siden 2026-08-27
+
+Efter DNS-flippet til CF for SaaS (2026-08-26) fik `datagaarden.dk` samme
+real-ip- og origin-guard-opsætning som event/cbcit. **Verbatim kilde**
+(`/var/www/vhosts/system/datagaarden.dk/conf/vhost_nginx.conf`, 2026-08-27;
+erstattede Kents-LB-versionen med `X-Client-IP` fra 185.21.232.10-12 — backup i
+`/root/vhost_nginx.conf.datagaarden.pre-cf-flip`): CF-`set_real_ip_from`-listen
+(identisk med event-blokken ovenfor, blot én directive pr. linje) +
+`real_ip_header CF-Connecting-IP;` + origin-guard-linjen
+`if ($cbc_origin_not_trusted) { return 403; }`.
+
+Bemærk: IDN-aliasset `xn--datagrden-92a.dk` har sin egen Plesk-genererede
+server-blok, der KUN 301-redirecter til `https://datagaarden.dk` — den har
+bevidst hverken real-ip eller guard (serverer intet indhold).
 
 ### 7.3 `.git`-eksponering (S1) — verificeret lukket
 

@@ -19,7 +19,8 @@ kun *hvad* kontoen er og *hvad* den bruges til.
 | **Microsoft OneDrive** | Off-site backup-destination (via Plesk-extension) | **Johans personlige** virksomheds-konto (johan@cbcit.dk), mappe `server.cbcit.dk` — ⚠️ personbundet, servicekonto-flytning besluttet som followup (05 §1.1) | 07 |
 | **GitHub** | Privat kode-mirror (`cbc-event-planner`, `cbc-child`) | Bruger `johanjohansen-cbc` (private repos) | 07 |
 | **Domæneregistrar** | Registrering af `cbcit.dk`, `datagaarden.dk` | **Simply.com** (Johan-verificeret 2026-07-20; 07 angav tidligere fejlagtigt punktum.dk) | 07 |
-| **Kent / LB-leverandør** | Ekstern load balancer foran `datagaarden.dk` | LB-IP'er `185.21.232.10-12` · kontakt ‹UDFYLD Kent› | — |
+| **Kent / Kobalt (historisk)** | Load balancer foran `datagaarden.dk` **frem til DNS-flip 2026-08-26** (brofasen; LB-IP'er `185.21.232.10-12`, firewall-regel + undtagelser fjernet 2026-08-27) | Kent Grady, kgrady@kobalt.dk — aftalen ophører 2026-12-31 | 07 |
+| **wwi** | DNS-udbyder for `datagaarden.dk` + `datagården.dk` (NS `ns1/ns2.wwi.dk`, `ns3.wwi.as`, `ns4.wwi.eu`) | Kontakt via site-ejeren (Data Gården) | — |
 
 > **‹UDFYLD›:** Registrar-navn og Kents kontaktinfo. Cloudflare-kontoen bekræftes
 > som "CBC IT v2" — verificér ejerskab/plan i dashboardet (07 dækker login).
@@ -63,17 +64,18 @@ frem til efter konferencen — se 03-software §frys.
 | Port | Bind | Tjeneste | Eksponering |
 |---|---|---|---|
 | **22** | `0.0.0.0`, `::` | SSH | Offentlig (firewall tillader; key-only) |
-| **80/443** | public IP | nginx (web) | **Kun Cloudflare-IP'er** (cbc_fw) + Kents LB på 443 |
+| **80/443** | public IP | nginx (web) | **Kun Cloudflare-IP'er** (cbc_fw; port 80 dog ACME-åben, se 02) — Kents-LB-hullet på 443 fjernet 2026-08-27 |
 | **8443** | `[::]`, `0.0.0.0` | Plesk-panel | **IKKE firewall-åben** → kun via Cloudflare Tunnel |
 | **53** | public IP + local | BIND (Plesk DNS) | Offentlig (authoritative DNS for Plesk-styrede zoner) |
 | **25 / 465 / 587** | localhost / ::1 | Postfix (mail) | Lokal + udgående relay til Brevo |
 | **3306** | `127.0.0.1` | MariaDB | Kun localhost |
 | 7080/7081/8880/8443 | localhost | Plesk interne | Lokal |
 
-> **Note port 53:** Boksen kører BIND og er authoritative DNS for de zoner Plesk
-> styrer (bl.a. `datagaarden.dk` via `ns1/ns2.datagaarden.dk`). For
-> `event.cbcit.dk`/`cbcit.dk` er **Cloudflare** authoritative — Plesk-zonen for dem
-> er sekundær/lokal og *ikke* den der besvares udadtil.
+> **Note port 53:** Boksen kører BIND og *tror* den er authoritative for de zoner
+> Plesk styrer, men ingen offentlig delegering peger på den: `datagaarden.dk`s
+> offentlige NS er **wwi** (`ns1/ns2.wwi.dk` m.fl.), og for
+> `event.cbcit.dk`/`cbcit.dk` er **Cloudflare** authoritative. Plesk-zonerne er
+> altså lokale kopier og *ikke* dem der besvares udadtil.
 
 ### 3.3 Firewall
 
@@ -90,7 +92,7 @@ input- **og** egress-filtrering.
 |---|---|---|---|
 | `event.cbcit.dk` | **Cloudflare** (CBC IT v2) | CF proxy + WAF + noindex | Kun via CF (firewall + origin-guard) |
 | `cbcit.dk` | **Cloudflare** | CF proxy | Kun via CF |
-| `datagaarden.dk` | **Plesk BIND** (`ns1/ns2.datagaarden.dk` → 178.104.70.94) | **Kents LB** (185.21.232.10-12) | Via LB (undtaget origin-guard) |
+| `datagaarden.dk` + `datagården.dk` (`xn--datagrden-92a.dk`) | **wwi** (`ns1/ns2.wwi.dk`, `ns3.wwi.as`, `ns4.wwi.eu`) | **CF for SaaS** (siden 2026-08-26): www-CNAME + apex-ANAME → `sites.cbcit.dk`; custom hostnames i cbcit.dk-zonen | Kun via CF (firewall + origin-guard, siden 2026-08-27) |
 
 ### 4.2 Cloudflare-zonen `cbcit.dk` (verificeret i dashboard 2026-07-20)
 

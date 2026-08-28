@@ -39,7 +39,7 @@ CBC Event Planner er et WordPress-baseret tilmeldings-/konferencesystem til CBC'
 | Server | Hetzner Cloud CPX32 (4 vCPU / 8 GB), Ubuntu 24.04 | Hetzner Cloud, IP 178.104.70.94, navn cbc-server (id 135078172) |
 | Web-panel | Plesk Obsidian 18.0.78.x | På serveren, port 8443. **Primær adgang: `https://plesk-event.cbcit.dk`** (Cloudflare Access → tunnel `cbc-plesk` → localhost:8443). Fallback: SSH-tunnel (`ssh -L 8443:localhost:8443 cbc-prod`). Port 8443 er IKKE åben i firewallen udefra. |
 | Web-stack | nginx → Apache → PHP-FPM (plesk-php84) | På serveren |
-| Sites på boksen | **event.cbcit.dk** (WP 7.0.1, frosset til efter konferencen, plugin cbc-event-planner + tema cbc-child) · **cbcit.dk** (WP 7.0 + **WooCommerce-webshop m. QuickPay-betalingsgateway**) · **datagaarden.dk** (WP 7.0.1, bag Kents load balancer — IKKE Cloudflare) | /var/www/vhosts/<domæne>/httpdocs |
+| Sites på boksen | **event.cbcit.dk** (WP 7.0.1, frosset til efter konferencen, plugin cbc-event-planner + tema cbc-child) · **cbcit.dk** (WP 7.0 + **WooCommerce-webshop m. QuickPay-betalingsgateway**) · **datagaarden.dk** (WP, bag Cloudflare for SaaS siden 2026-08-26 — DNS hos wwi, custom hostnames i cbcit.dk-zonen) | /var/www/vhosts/<domæne>/httpdocs |
 | Kode-leverance | Self-hosted bare git repo + privat GitHub-mirror | Server /var/git/*.git + GitHub johanjohansen-cbc |
 | Udgående mail | Postfix → Brevo SMTP-relay (port 587) | Brevo Free-plan; SASL-creds på serveren |
 | Backup | Plesk Backup Manager → Microsoft OneDrive (M365) | OneDrive, retention 7 dage |
@@ -47,7 +47,7 @@ CBC Event Planner er et WordPress-baseret tilmeldings-/konferencesystem til CBC'
 
 
 
-**Vigtigt:** Der findes **ingen staging-server** — der deployes direkte til prod via git (med backup + verifikation). Local by Flywheel på Johans maskine er dev-sandkassen. **datagaarden.dk** når serveren via Kents load balancer (185.21.232.10-12, firewall-regel `KENTS-LB-TEMP`) — ændringer dér koordineres med Kent (§11).
+**Vigtigt:** Der findes **ingen staging-server** — der deployes direkte til prod via git (med backup + verifikation). Local by Flywheel på Johans maskine er dev-sandkassen. **datagaarden.dk** når serveren via Cloudflare for SaaS (siden 2026-08-26; Kents-LB-broen og `KENTS-LB-TEMP`-firewall-reglen er nedlagt 2026-08-27, se §6.8).
 
 ---
 
@@ -207,17 +207,17 @@ Serveren kan genskabes; men disse eksterne tjenester er kritiske og skal kontrol
 * Penge-kritisk. Aftale-ejerskab: **CBC IT ejer både QuickPay-kontoen og
   indløseraftalen** (bekræftet 2026-07-20) — ingen personafhængighed her.
 
-### 6.8 Kent / ekstern load balancer (datagaarden.dk)
+### 6.8 Kent / ekstern load balancer (datagaarden.dk) — HISTORISK siden 2026-08-27
 
-* `datagaarden.dk` frontes af Kents load balancer (`185.21.232.10-12`) — IKKE
-  Cloudflare. Plesk BIND på serveren er authoritative DNS for domænet.
-* Firewallen har en dedikeret accept-regel (`KENTS-LB-TEMP`, 443). Ændringer i
-  det spor koordineres med Kent: **Kent Grady — kgrady@kobalt.dk** (Kobalt er
-  også CF-org-admin-kontakten i §11 og forklarer `spf1.kobalt.dk` i SPF-historikken).
-* ⚠️ **Aftalen med Kobalt OPHØRER 2026-12-31.** Derefter forsvinder Kents LB som
-  fronting for datagaarden.dk. Inden da skal datagaarden enten (a) flyttes bag
-  Cloudflare som de øvrige sites, eller (b) have anden fronting. Planlæg i
-  efteråret 2026 — efter konferencen, før december.
+* **Løst før tid:** `datagaarden.dk` blev DNS-flippet til **Cloudflare for SaaS**
+  2026-08-26 (DNS hos wwi: www-CNAME + apex-ANAME → `sites.cbcit.dk`; custom
+  hostnames + certifikater i cbcit.dk-zonens "SSL for SaaS"). 2026-08-27 blev
+  Kents-LB-broen ryddet op: `KENTS-LB-TEMP`-firewall-reglen fjernet, LB-IP'erne
+  ud af fail2ban, vhost skiftet til CF-real-ip + origin-guard.
+* Kobalt-aftalens ophør 2026-12-31 har derfor **ingen konsekvens** for denne boks.
+  Kent-kontakt (fortsat relevant for andre cbcit.dk-subdomæner på 185.21.232.x
+  uden for boksen): **Kent Grady — kgrady@kobalt.dk** (Kobalt er også
+  CF-org-admin-kontakten i §11 og forklarer `spf1.kobalt.dk` i SPF-historikken).
 
 ---
 
@@ -279,8 +279,8 @@ Disse kan vælte prod — og nogle rammer langt bredere end dette ene site:
 5. **Firewall-ændringer** — kør ALTID med en "dead-man switch" (`systemd-run --on-active=300 ... nft delete table inet cbc_fw`) FØR du applyer, test frisk SSH, og annullér dead-man først når du er sikker. Ellers kan en regelfejl låse dig ude.
 6. **WP/PHP-version** — WP er pinned til **7.0.1**, PHP til 8.4, **FRYS til efter konferencen (september 2026)**. Major-opgraderinger testes på Local FØRST.
 7. **Nye Plesk-subscriptions SKAL have incoming mail slået fra** (`plesk bin subscription -u <domæne> -mail_service false`) — ellers **kaprer** den nye subscription MX/mail-leveringen for hele `@cbcit.dk` (som ligger på Microsoft 365). Dyrt lært.
-8. **Origin-guard** (`/etc/nginx/conf.d/cbc-origin-guard.conf`) — geo-blok der giver 403 til enhver origin-forbindelse der ikke kommer fra Cloudflare/loopback. `datagaarden.dk` er BEVIDST undtaget (nås via Kents LB). Slet den ikke, og tilføj aldrig datagaarden til den.
-9. **`KENTS-LB-TEMP`-firewall-reglen** (443 fra 185.21.232.10-12) — fjernes ikke uden koordinering med Kent (§6.8).
+8. **Origin-guard** (`/etc/nginx/conf.d/cbc-origin-guard.conf`) — geo-blok der giver 403 til enhver origin-forbindelse der ikke kommer fra Cloudflare/loopback. Håndhæves på ALLE tre sites (datagaarden kom med 2026-08-27 efter CF-flippet). Slet den ikke — og hold geo-listen synkron med CF-real-ip-listerne i vhost'ene.
+9. **`sites.cbcit.dk`-recorden + "SSL for SaaS" i cbcit.dk-zonen** — `sites.cbcit.dk` er fallback-origin/CNAME-target for datagaarden.dk's custom hostnames (og evt. fremtidige kundesites). Slettes/afproxies den, dør datagaarden.dk. (`KENTS-LB-TEMP`-reglen fra det gamle LB-spor er fjernet 2026-08-27 og må ikke genindføres.)
 
 ---
 

@@ -79,7 +79,7 @@ Tre Plesk-subscriptions, alle på IP `178.104.70.94`, alle `<sysuser>:psaserv`-e
 | **Cron** | ⚠️ **Ingen `DISABLE_WP_CRON`, ingen system-cron for `cbcitdk`** → request-drevet wp-cron. WooCommerce's schedulerede jobs (Action Scheduler) kører kun ved besøgstrafik. Overvej samme system-cron-mønster som event (se 04-drift §2.1). |
 | **WP-CLI-gotcha** | `wp` mod dette site **OOM'er på default 128M** (WooCommerce-load) → brug altid `-d memory_limit=512M`. |
 
-### 3.3 `datagaarden.dk` — selvstændigt WordPress-site (Kent-LB-sporet)
+### 3.3 `datagaarden.dk` — selvstændigt WordPress-site (CF-for-SaaS)
 
 | | |
 |---|---|
@@ -89,13 +89,13 @@ Tre Plesk-subscriptions, alle på IP `178.104.70.94`, alle `<sysuser>:psaserv`-e
 | **WordPress** | 7.0.1 |
 | **Plugins (aktive)** | `wordfence`, `complianz-gdpr`, `contact-form-7`, `really-simple-ssl`, `wps-hide-login`, `google-site-kit`, `official-facebook-pixel`, `wp-cloudflare-page-cache`, `wp-consent-api`, `insert-headers-and-footers`, `classic-editor`, `duplicate-page`, `media-cleaner` |
 | **Tema** | `cbc-child` — **NB:** navnesammenfald med event's tema; verificér at det er et *separat* tema, ikke det samme repo (datagaardens er ikke koblet til CBC-deploy). |
-| **Fronting** | **Kents load balancer** (`185.21.232.10-12`), IKKE Cloudflare. Plesk BIND er authoritative DNS (`ns1/ns2.datagaarden.dk`). |
-| **Sikkerhed** | Wordfence (app-WAF) + `wps-hide-login`. Bevidst undtaget origin-guarden. |
-| **Status** | **Work-in-progress** pr. 2026-07-20 — firewall-regel `KENTS-LB-TEMP` har `counter 0` (ingen LB-trafik endnu). Koordinér ændringer med Kent. |
+| **Fronting** | **Cloudflare for SaaS** (siden 2026-08-26): custom hostnames i cbcit.dk-zonen, DNS hos **wwi**, www-CNAME + apex-ANAME → `sites.cbcit.dk`. IDN-alias `datagården.dk` (`xn--datagrden-92a.dk`) redirecter til apex. Se 01 §4.1 + 02 §7.2b. |
+| **Sikkerhed** | Wordfence (app-WAF) + `wps-hide-login` + origin-guard og CF-real-ip (siden 2026-08-27). |
+| **Status** | **LIVE bag CF** siden 2026-08-26; Kents-LB-broen (juli-august, `KENTS-LB-TEMP`) er nedlagt og firewall/fail2ban ryddet op 2026-08-27. |
 
-> `wp-cloudflare-page-cache` er aktivt på datagaarden trods LB-fronting — sandsynligvis
-> en levning fra sitets tidligere hosting. Verificér om det gør skade (kan cache
-> forkert bag LB) ved endelig go-live.
+> `wp-cloudflare-page-cache` er aktivt på datagaarden — pegede historisk på sitets
+> GAMLE CF-setup (ex-partnerens konto). Efter flippet til CBC's zone bør det
+> verificeres/omkonfigureres (API-token/zone i plugin'et er næppe vores).
 
 ---
 

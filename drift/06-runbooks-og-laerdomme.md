@@ -134,11 +134,15 @@ adgangskæde. Det ligger **uden for git** (bevidst).
 > nøglerne findes, drillen beviser at en *anden* kan bruge dem. Ingen
 > credentials gengives i denne manual.
 
-> **⏰ NYT ÅBENT PUNKT (fundet 2026-07-20):** Aftalen med Kobalt (Kent Grady)
-> **ophører 2026-12-31** → datagaarden.dk mister sin fronting (Kents LB).
-> Beslut i efteråret: flyt datagaarden bag Cloudflare (som de øvrige sites —
-> origin-guard-undtagelsen og `KENTS-LB-TEMP` ryddes så op samtidig) eller
-> etablér anden fronting. Efter konferencen, FØR december.
+> **✅ LUKKET 2026-08-27 (var åbent punkt fra 2026-07-20):** Kobalt-aftalens ophør
+> 2026-12-31 truede datagaarden.dk's fronting (Kents LB). **Løst før tid:**
+> DNS-flip til Cloudflare for SaaS 2026-08-26 (www-CNAME + apex-ANAME →
+> `sites.cbcit.dk` hos wwi; custom hostnames i cbcit.dk-zonen), og 2026-08-27 blev
+> broen ryddet op: `KENTS-LB-TEMP`-firewall-reglen fjernet, LB-IP'erne ud af
+> fail2ban-`ignoreip`, vhost skiftet fra `X-Client-IP` til `CF-Connecting-IP`,
+> origin-guard-undtagelsen nedlagt. Kents LB indgår ikke længere i noget
+> CBC-setup for denne boks (185.21.232.x-nettet fronter fortsat andre
+> cbcit.dk-subdomæner uden for boksen, se 01 §4.2).
 
 ---
 
