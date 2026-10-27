@@ -2,7 +2,9 @@
 
 > Backup-tiers · restore-procedurer · restore-drill · RTO/RPO.
 > **Verificeret:** 2026-07-20 via live SSH; **2026-08-18 via gennemført
-> restore-drill** (fuld gendannelse af event.cbcit.dk på scratch-server — se §3).
+> restore-drill** (fuld gendannelse af event.cbcit.dk på scratch-server — se §3);
+> **2026-10-26/27 status-tjek** (Plesk-backup kørte 26/10 00:12, snapshot-rutinen
+> kørte 26/10 09:00 — begge OK).
 > Fuld rollback-detalje: se plugin-repoets `docs/05-deploy-workflow.md §10`.
 
 ---
@@ -13,7 +15,7 @@
 |---|---|---|---|---|
 | **Plesk full backup** | Alle subscriptions (filer + DB + config + mail) | **Daglig 00:12**, fuld hver 7. dag | **Microsoft OneDrive** (via Plesk-extension) | **Restore-drill 2026-08-18: gendannelse bevist ✓** (§3) |
 | **Pre-deploy DB-dump** | event-DB + plugin/tema-tarball | Pr. deploy (auto i `deploy.sh`) | `/var/backups/cbc-pre-deploy/` (`700`, filer `600`) | Bruges løbende ved deploys |
-| **Hetzner snapshot** | Hele disken (bare-metal-image) | **Ugentlig, AUTOMATISK** (mandag 09:00 fra Johans maskine: Task Scheduler-opgaven "CBC Hetzner ugentlig snapshot", script `C:\Users\JohanJohansen\cbc-ops\hetzner-snapshot.ps1`; DB-dump først, behold 3 nyeste, statusmail til johan@) | Hetzner Cloud | E2E-testet 2×; mailer BÅDE ved OK og FEJL — udebliver mandagsmailen, er rutinen død (fx maskine slukket) |
+| **Hetzner snapshot** | Hele disken (bare-metal-image) | **Ugentlig, AUTOMATISK** (mandag 09:00 fra Johans maskine: Task Scheduler-opgaven "CBC Hetzner ugentlig snapshot", script `C:\Users\JohanJohansen\cbc-ops\hetzner-snapshot.ps1`; Hetzner-API-token DPAPI-krypteret i `hetzner-token.xml` samme mappe; DB-dump først, behold 3 nyeste `cbc-weekly-*`, manuelle snapshots prunes aldrig; statusmail til johan@; log `snapshot-log.txt`) | Hetzner Cloud | E2E-testet 2×; mailer BÅDE ved OK og FEJL — udebliver mandagsmailen, er rutinen død (fx maskine slukket — det skete 27/7→5/10-2026, fikset 8/10). **Seneste: 2026-10-26 09:02 OK, `cbc-weekly-2026-10-26` (24,6 GB)**. ⚠️ Afhænger af Johans PC + Windows-login → personbundet ligesom OneDrive. |
 | **Git-mirror** | Al kode + historik | Pr. `git push both` | GitHub (privat) + prod bare repos | Se 04-drift §1 |
 
 ### 1.1 Plesk → OneDrive (detaljer, fra `BackupsScheduled`)
@@ -27,7 +29,7 @@
 | Rotation | **7** (beholder 7 backups) |
 | Indhold | Alt ved domænet (`with_content=true`, mail inkluderet) |
 | Notifikation | `johan@cbcit.dk` |
-| Sidste kørsel | 2026-07-20 00:16, valideret samme dag |
+| Sidste kørsel | 2026-10-26 00:13 (inkrementel; seneste fulde 2026-10-21 00:25, 8,7 GB), valideret samme dag. Lokale dump-metadata pr. domæne i `/var/lib/psa/dumps/domains/`. |
 
 - Backup-jobbet drives af Plesk Backup Manager (poller-cron hvert 15. min i
   `/etc/cron.d/plesk-backup-manager-task`).
@@ -116,6 +118,24 @@ su -s /bin/bash event.cbcit.dk_x3pjx5okzbn -c "…/wp db import /var/backups/cbc
         neutraliseres: `geo $realip_remote_addr $cbc_origin_not_trusted { default 0; }`
       - Kør `/opt/psa/admin/bin/httpdmng --reconfigure-domain event.cbcit.dk`
         + genstart nginx, hvis sitet svarer med Plesk-panelets default-side.
+      - **Hele hærdnings-laget fra okt. 2026 er server-level og skal genskabes
+        manuelt** (et Hetzner-snapshot har det alt sammen; en OneDrive-restore
+        har INTET af det): nftables `cbc_fw` + egress-sets
+        (`/etc/nftables.d/cbc_fw.nft`, `cbc_web_egress_elements.nft`,
+        `/etc/cbc-web-egress-hosts.txt`, `-ranges.txt`), `cbc-fw.service`,
+        alle `/usr/local/sbin/cbc-*.sh`, `/etc/cron.d/cbc-*`, systemd-timers
+        `cbc-*.timer`, `/etc/logrotate.d/cbc-*`, sshd-drop-in + Match-blokke +
+        `/etc/ssh/authorized_keys.d/kent` + `/srv/partner-dump` og `/srv/dg-sftp`,
+        `/opt/plesk/php/8.4/etc/php.d/zz-cbc-upload-progress.ini`, sysctl-drop-in,
+        Postfix `inet_interfaces=loopback-only` + `sasl_passwd`, Imunify-skema,
+        `/root/cbc-deploy-creds.txt` + `/root/cbc-partner-sites-creds.txt`,
+        `/root/cbc-hardening-2026-10/` (runbook + rollback-filer). Plesk-siden af
+        hærdningen (per-domæne PHP `disable_functions`/`open_basedir`,
+        `client_max_body_size`, Additional nginx directives, mu-plugins i docroot,
+        sysuser-crontabs) FØLGER med subscription-backuppen.
+        Kopier af scripts/konfig til genopbygning ligger i
+        `/root/cbc-hardening-2026-10/stage/` — og bør spejles i cbc-drift-repoet
+        ved næste lejlighed (åbent punkt).
    6. Re-point DNS/firewall/tunnel (07) — ALDRIG mens scratch-/testserver
       stadig lever.
 3. **Kode** hentes uafhængigt fra GitHub-mirror (se `docs/05 §14.4`).

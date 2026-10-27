@@ -2,7 +2,8 @@
 
 > Deploy & release · cron/baggrundsjobs · mail (Brevo) · logs & overvågning.
 > **Verificeret:** 2026-07-20 via live SSH (`crontab -l`, `wp cron event list`,
-> `postconf -n`, log-inventory). Detaljeret deploy-guide: se plugin-repoets
+> `postconf -n`, log-inventory); **re-verificeret 2026-10-26** (crontabs, cron.d,
+> systemd-timers, Postfix, mail-DNS). Detaljeret deploy-guide: se plugin-repoets
 > `docs/05-deploy-workflow.md` (denne fil opsummerer + krydsrefererer).
 
 ---
@@ -80,30 +81,56 @@ WP's egen request-cron er slået fra (`DISABLE_WP_CRON=true`). I stedet kører
 > `cbc_send_reminders`-kørsel). Crontab-backup fra før ændringen:
 > `/root/crontab-backup-2026-07-20-*.txt`.
 >
-> **⚠️ Åbent — cbcit.dk har INGEN system-cron:** `cbcitdk` har ingen crontab og
-> `DISABLE_WP_CRON` er ikke sat → WooCommerce's Action Scheduler kører kun ved
-> besøgstrafik. Overvej at spejle event-mønstret (system-cron + DISABLE_WP_CRON)
-> for cbcit.dk. Husk `-d memory_limit=512M` — WP-CLI OOM'er ellers på det site.
+> **✅ Lukket okt. 2026 — alle tre sites kører system-cron:** `cbcitdk` og
+> `datagaardendk` har hver en `*/5`-linje magen til events (512M) og
+> `DISABLE_WP_CRON=true` i wp-config. WooCommerce Action Scheduler på cbcit.dk
+> er dermed uafhængig af besøgstrafik.
 
-### 2.2 CBC plugin-crons (verificeret schedulerede 2026-07-20)
+### 2.2 CBC plugin-crons (verificeret schedulerede 2026-10-26, plugin 2.7.0)
 
 | Hook | Frekvens | Kritikalitet |
 |---|---|---|
 | `cbc_outbox_send` | 5 min | 🔴 Sender kø-mails (publish + reminders) |
 | `cbc_send_reminders` | Daglig | 🔴 Reminder-mails + PDF |
+| `cbc_meeting_pending_reminder` | Daglig | 🟡 Rykker for ubesvarede mødeanmodninger |
+| `cbc_pending_kollega_reminder` | Daglig | 🟡 Rykker for ventende kollega-godkendelser |
 | `cbc_purge_expired_magic_tokens` | Daglig | 🟡 Oprydning af udløbne login-tokens |
+| `cbc_reminder_pdf_purge` | Daglig | 🟢 Oprydning af genererede reminder-PDF'er |
 | `cbc_outbox_purge` | Daglig | 🟢 Oprydning af sendt outbox |
 | `cbc_event_log_purge` | Daglig | 🟢 Audit-log-oprydning |
 
 Self-monitoring: plugin'et viser en rød **Cron-sundheds-banner** i wp-admin hvis
 reminder-cron > 26 t eller outbox har hængende mails > 30 min (se `04-hosting §1`).
 
-### 2.3 OS-/Plesk-crons
+### 2.3 OS-/Plesk-/CBC-crons og timers
 
-- `/etc/cron.d/`: `plesk-backup-manager-task` (backup-poller hvert 15. min),
-  `imunify-*` (malware-scan), `plesk-outgoing-mail-statistics-poller`, `sysstat`.
-- `/etc/cron.daily/`: `50plesk-daily`, **`dmarc-report`** (Plesk DMARC aggregate),
-  `logrotate`, `imunify-antivirus`, `webalizer`, m.fl.
+**CBC-egne jobs (root, siden okt. 2026 — alle dokumenteret med rollback i
+`/root/cbc-hardening-2026-10/README.md`):**
+
+| Job | Plan | Gør | Mail til johan@ |
+|---|---|---|---|
+| `/etc/cron.d/cbc-security-updates` → `cbc-security-updates.sh` | hver 4. t (:45) | Plesk-PHP + Ubuntu-security + cloudflared/Imunify via apt; genstarter FPM hvis pakken ikke gør | kun ved ændring eller fejl |
+| `/etc/cron.d/cbc-advisory-watch` → `cbc-advisory-watch.sh check`/`weekly` | 07:15 dagligt / man 07:30 | PHP/WP/plugin/Plesk-versioner mod upstream; changelog-scan for sikkerheds-ord | ved afvigelse / altid mandag ("alt OK") |
+| `/etc/cron.d/cbc-egress-report` → `cbc-egress-report.sh` | 06:55 dagligt | Opsummering af web-egress-drops | **altid** (udebleven mail = fejl) |
+| `/etc/cron.d/cbc-woo-order-watch` → `cbc-woo-order-watch.sh` | hver time (:07) | > 5 WooCommerce-ordrer/time på cbcit.dk → alarm m. IP-fordeling | kun ved overskridelse |
+| `cbc-wp-integrity.timer` → `cbc-wp-integrity.sh` | 05:15 dagligt | core+plugin-checksums alle 3 sites | kun ved afvigelse |
+| `cbc-web-egress-refresh.timer` | hver time (+2 min efter boot) | Opløs allowlist-hostnavne → nft-sets | — |
+| `cbc-web-egress-ranges.timer` | søn 04:50 | Hent Google/Meta-ranges | ved fejl |
+| `cbc-fw-refresh.timer` | søn 04:30 | Opdatér CF-IP-sets i firewallen | ved ændring/fejl |
+| sysuser-crontab event: `cbc-update-notify.php` | man 07:30 UTC | Ventende WP-opdateringer på event | kun hvis noget venter |
+| **Johans PC:** Task Scheduler "CBC Hetzner ugentlig snapshot" | man 09:00 | Hetzner-snapshot (05 §1) | altid (OK/FEJL) |
+
+**Plesk/OS:** `/etc/cron.d/plesk-backup-manager-task` (backup-poller hvert 15. min),
+`imunify-*`, `plesk-outgoing-mail-statistics-poller`, `sysstat`, `e2scrub_all`;
+`/etc/cron.daily/`: `50plesk-daily` (Plesk-autoupdate ~06:25), `dmarc-report`,
+`logrotate`, `imunify-antivirus`, `webalizer` m.fl.; `psaadm`-crontab (WP Toolkit,
+SSL It! `keep-secured.php` hver time = fornyer panel-certet, monitoring m.fl.).
+Apt-timere flyttet til 01:00/02:00 (drop-ins), så de ikke kolliderer med Plesks
+06:25-kørsel.
+
+> **Alle alarm-mails går til `johan@cbcit.dk`** (cron, Imunify `ADMIN_CONTACTS`,
+> Plesk-backup, snapshot). Ved overdragelse: skift til en fælles drifts-adresse
+> ét sted ad gangen — listen ovenfor + 07 §10 er den komplette oversigt.
 
 ---
 
@@ -125,8 +152,12 @@ options `cbc_contact_email` / `cbc_noreply_email`.
 
 ### 3.2 Autentificering (SPF/DKIM/DMARC)
 
-Sat pr. domæne (se 01-fundament §4.4): SPF `-all`, DKIM `default._domainkey`,
-DMARC `p=quarantine` (strict alignment). Plesk kører daglig DMARC-aggregate-rapport.
+Det der **gælder udadtil** står i Cloudflare-zonen (01-fundament §4.4): `cbcit.dk`
+SPF `-all` (lang legacy-liste), Brevo-DKIM `brevo1/brevo2`, DMARC **`p=none`**.
+Plesks lokale BIND-zoner har egne SPF/DKIM/DMARC-records (`p=quarantine`), men de
+besvares ikke udadtil og er kosmetiske. Plesk kører daglig DMARC-aggregate-rapport.
+Status og åbne punkter pr. domæne (SPF-oprydning, DMARC for datagaarden.dk,
+Brevo-autentificering af datagaarden.dk): tabellen i 01 §4.4.
 
 > **✅ Deliverability-test gennemført 2026-07-20 (mail-tester.com): 7,6/10 —
 > "properly authenticated": SPF ✓ DKIM ✓ DMARC ✓**, ikke blocklisted. Brevo
@@ -141,7 +172,9 @@ DMARC `p=quarantine` (strict alignment). Plesk kører daglig DMARC-aggregate-rap
 ### 3.3 Mail-kaprings-invariant (KRITISK)
 
 `cbcit.dk` og `datagaarden.dk` har **incoming mail slået fra**
-(*"Mail service: Disabled for incoming mail"*). Det er med vilje: en ny
+(*"Mail service: Disabled for incoming mail"* — re-verificeret 2026-10-27;
+`event.cbcit.dk` står på Enabled, hvilket er harmløst: subdomænet har ingen MX, og
+Postfix lytter kun på loopback). Det er med vilje: en ny
 subscription med mail-service tændt kaprer ellers MX/leveringen for `@cbcit.dk`.
 **Enhver ny subscription skal have `plesk bin subscription -u <domain> -mail_service false`
 (eller "Mail" fravalgt i UI) sat med det samme.**
@@ -152,22 +185,26 @@ subscription med mail-service tændt kaprer ellers MX/leveringen for `@cbcit.dk`
 
 | Kilde | Sti / mekanisme |
 |---|---|
-| **Web-logs (event)** | `/var/www/vhosts/event.cbcit.dk/logs/` — `access_ssl_log`, `error_log`, `proxy_access_log` |
-| **PHP-fejl** | Plesk per-domæne error_log (samme mappe) + `/var/log/` |
-| **Firewall egress-drops** | `journalctl -k | grep cbc_fw` |
+| **Web-logs (pr. site)** | `/var/www/vhosts/system/<domæne>/logs/` — `access_ssl_log`, `error_log`, `proxy_access_log` (ægte klient-IP takket være CF-real-ip) |
+| **PHP-fejl** | Plesk per-domæne `error_log` (samme mappe); mu-plugins logger `[cbc-checkout-guard]` dér |
+| **Firewall egress-drops** | `journalctl -k | grep -E "egress-drop|cbc-egress-drop"` + daglig rapport-mail 06:55 |
 | **fail2ban** | `fail2ban-client status <jail>` |
-| **Malware** | Imunify (Plesk → Imunify-UI) |
+| **Malware** | Imunify (Plesk → Imunify-UI; `imunify360-agent malware on-demand list`) — dagligt 03:00 |
+| **Patching/advisories** | `/var/log/cbc-security-updates.log`, `/var/log/cbc-advisory-watch.log` (+ `/var/lib/cbc-advisory/last-report.txt`), `/var/log/cbc-wp-integrity.log` |
+| **Cloudflare** | Security → Events i dashboardet (Pro: 3 dages historik); GraphQL `firewallEventsAdaptive` via API-token (Analytics Read) |
 | **App-selvmonitorering** | Cron-sundheds-banner i wp-admin (se §2.2) |
-| **Backup-status** | Plesk Backup Manager + notifikations-mail til johan@ |
-| **Ekstern uptime** | ‹UDFYLD: er der en ekstern uptime-monitor (UptimeRobot e.l.)? Hvis nej — overvej én, der pinger event.cbcit.dk og alarmerer.› |
+| **Backup-status** | Plesk Backup Manager + notifikations-mail til johan@; snapshot-mail fra Johans PC mandag |
+| **Ekstern uptime** | **Ingen** (afklaret 2026-10-26). Al overvågning er selvrapporterende fra boksen — en angriber med root kan tie den. Anbefaling: ekstern dead-man/uptime-monitor (fx healthchecks.io-ping fra en cron + HTTP-check på de tre forsider). |
 
 ---
 
 ## 5. Verifikations-kommandoer
 
 ```bash
-ssh cbc-prod 'crontab -l -u event.cbcit.dk_x3pjx5okzbn'
+ssh cbc-prod 'for u in event.cbcit.dk_x3pjx5okzbn cbcitdk datagaardendk; do echo "-- $u"; crontab -l -u $u; done'
 ssh cbc-prod "su -s /bin/bash event.cbcit.dk_x3pjx5okzbn -c '…/wp --path=…/httpdocs cron event list'"
-ssh cbc-prod 'postconf -n | grep -iE "relayhost|sasl|tls_security"'
+ssh cbc-prod 'cat /etc/cron.d/cbc-*; systemctl list-timers --no-pager | grep cbc-'
+ssh cbc-prod 'tail -5 /var/log/cbc-security-updates.log /var/log/cbc-advisory-watch.log /var/log/cbc-wp-integrity.log'
+ssh cbc-prod 'postconf -n | grep -iE "relayhost|sasl|tls_security"; postconf -h inet_interfaces'
 ssh cbc-prod 'plesk bin subscription --info cbcit.dk | grep -i "Mail service"'
 ```

@@ -2,7 +2,9 @@
 
 > Konti & leverandører · hardware/OS · netværk & DNS.
 > **Verificeret:** 2026-07-20 via live SSH-inventory (`hostnamectl`, `ip`,
-> `plesk bin`, `nft`). Cloudflare-DNS/zone-detaljer markeret **‹CF-DASHBOARD›**.
+> `plesk bin`, `nft`); **re-verificeret 2026-10-26** (fuld read-only audit:
+> `ss`, `nft`, ekstern portscan fra Windows, DNS-opslag, Cloudflare-API).
+> Cloudflare-DNS/zone-detaljer markeret **‹CF-DASHBOARD›**.
 
 ---
 
@@ -22,8 +24,9 @@ kun *hvad* kontoen er og *hvad* den bruges til.
 | **Kent / Kobalt (historisk)** | Load balancer foran `datagaarden.dk` **frem til DNS-flip 2026-08-26** (brofasen; LB-IP'er `185.21.232.10-12`, firewall-regel + undtagelser fjernet 2026-08-27) | Kent Grady, kgrady@kobalt.dk — aftalen ophører 2026-12-31 | 07 |
 | **wwi** | DNS-udbyder for `datagaarden.dk` + `datagården.dk` (NS `ns1/ns2.wwi.dk`, `ns3.wwi.as`, `ns4.wwi.eu`) | Kontakt via site-ejeren (Data Gården) | — |
 
-> **‹UDFYLD›:** Registrar-navn og Kents kontaktinfo. Cloudflare-kontoen bekræftes
-> som "CBC IT v2" — verificér ejerskab/plan i dashboardet (07 dækker login).
+> Registrar (Simply.com), Kents kontaktinfo og Cloudflare-kontoen "CBC IT v2"
+> (Pro-plan) er alle bekræftet (2026-07-20 / 2026-10-26). Eneste rest: formålet
+> med zonen `cbcnet.dk` i samme CF-konto (§4.2).
 
 ---
 
@@ -34,18 +37,24 @@ kun *hvad* kontoen er og *hvad* den bruges til.
 | **Udbyder** | Hetzner Cloud (EU — GDPR-relevant) |
 | **Type** | **CPX32** (4 vCPU / 8 GB / 150 GB), server-id **135078172** (bekræftet i break-glass 07 §1/§6.1). **Bemærk:** de gamle plugin-docs nævnte "CX22" — forkert. |
 | **CPU** | AMD EPYC-Genoa (4 vCPU) |
-| **Disk** | 150 GB, 20 % brugt (28 GB) pr. 2026-07-20 |
+| **Disk** | 150 GB, 25 % brugt (35 GB) pr. 2026-10-26 |
 | **Hostname** | `server.cbcit.dk` |
 | **Konsol-navn** | `cbc-server` (i Hetzner Cloud-konsollen) |
-| **OS** | Ubuntu 24.04.4 LTS |
-| **Kernel** | 6.8.0-136-generic |
+| **OS** | Ubuntu 24.04.5 LTS |
+| **Kernel** | 6.8.0-147-generic (pr. 2026-10-26) |
 | **Tidszone** | Europe/Copenhagen |
-| **Genstart** | Boksen genstarter **selv** efter natlige `unattended-upgrades`. Alle tjenester kommer automatisk op (verificeret i drift). Seneste boot 2026-07-19 04:00. |
+| **Genstart** | Boksen genstarter **selv** kl. 04:00 når en kerne-opdatering kræver det (`unattended-upgrades` + Automatic-Reboot). Alle tjenester kommer automatisk op (verificeret i drift, bl.a. boots 2026-10-10 og 2026-10-14). |
 
-**OS-opdateringer:** `unattended-upgrades` kører automatisk (Ubuntu-standard) og
-genstarter ved kerne-opdateringer. Plesk-komponenter (PHP, MariaDB, nginx) patches
-via Plesk's egen auto-update. **App-laget (WP/plugin/tema) er derimod fastfrosset**
-frem til efter konferencen — se 03-software §frys.
+**OS-/platform-opdateringer (siden 2026-10-23 — se 04-drift §2.3 + 06 §1.10):**
+- `unattended-upgrades` (Ubuntu security, apt-daily ~01:20 / upgrade ~02:10).
+- **`cbc-security-updates.sh` hver 4. time** (00:45, 04:45 …): Plesk-PHP
+  (`plesk-php8*`), Ubuntu-security, og siden 2026-10-26 også `cloudflared`,
+  `imunify*` og `alt-php-internal*`. Mailer johan@ kun når noget blev opgraderet.
+  Baggrund: PHP-RCE'en CVE-2026-109618 (21/10-2026) blev først patchet af Plesks
+  natkørsel ~14 t efter release.
+- Plesk-komponenter (panel, nginx, MariaDB m.m.) via Plesks egen natkørsel ~06:25.
+- **App-laget:** WP-core/plugins/temaer — se 03-software §2 (frysen er ophævet
+  2026-10-08; majors kun mellem konferencer).
 
 ---
 
@@ -59,17 +68,18 @@ frem til efter konferencen — se 03-software §frys.
 | `eth0` (v6) | `2a01:4f8:c2c:6018::1/64` |
 | loopback | `127.0.0.1`, `::1` |
 
-### 3.2 Åbne/lyttende porte (fra `ss -tulpn`, 2026-07-20)
+### 3.2 Åbne/lyttende porte (fra `ss -tulpn` 2026-10-26 + ekstern TCP-scan af 24 porte fra Windows samme dag: **kun 22 og 80 svarer udefra**)
 
 | Port | Bind | Tjeneste | Eksponering |
 |---|---|---|---|
-| **22** | `0.0.0.0`, `::` | SSH | Offentlig (firewall tillader; key-only) |
+| **22** | `0.0.0.0`, `::` | SSH | Offentlig (firewall tillader; key-only for root; ~500 fejlede login-forsøg/uge = baggrundsstøj, fail2ban `ssh` + `recidive` aktive) |
 | **80/443** | public IP | nginx (web) | **Kun Cloudflare-IP'er** (cbc_fw; port 80 dog ACME-åben, se 02) — Kents-LB-hullet på 443 fjernet 2026-08-27 |
 | **8443** | `[::]`, `0.0.0.0` | Plesk-panel | **IKKE firewall-åben** → kun via Cloudflare Tunnel |
 | **53** | public IP + local | BIND (Plesk DNS) | Offentlig (authoritative DNS for Plesk-styrede zoner) |
 | **25 / 465 / 587** | localhost / ::1 | Postfix (mail) | Lokal + udgående relay til Brevo |
 | **3306** | `127.0.0.1` | MariaDB | Kun localhost |
 | 7080/7081/8880/8443 | localhost | Plesk interne | Lokal |
+| udp høje porte | `*` | `cloudflared` (QUIC til CF edge, 7844 udad) | Udgående tunnel — intet lytter udefra |
 
 > **Note port 53:** Boksen kører BIND og *tror* den er authoritative for de zoner
 > Plesk styrer, men ingen offentlig delegering peger på den: `datagaarden.dk`s
@@ -128,9 +138,16 @@ LB-net 185.21.232.x), `stage.cbcit.dk` → **Cloudflare Pages** (`cbc-stage.page
   at hæve hele zonen.
 - **Origin Certificates** (CF-signerede, installeret på boksen):
   `cbcit.dk` + `www.cbcit.dk` → udløb **2041-07-12** · `event.cbcit.dk` +
-  `*.event.cbcit.dk` → udløb **2041-07-06**.
-- Trafik (seneste døgn ved aflæsning): ~20k TLS 1.3, ~1,4k TLS 1.2, ~10k
-  ikke-TLS (formentlig HTTP→HTTPS-redirects; verificér at "Always Use HTTPS" er på).
+  `*.event.cbcit.dk` → udløb **2041-07-06**. **`datagaarden.dk` kører derimod
+  Plesks selvsignerede cert på origin** (udløb 2027-06-01) — virker kun fordi
+  zone-mode er `Full` (ikke strict). Audit-fund 2026-10-26, åbent: udsted et
+  CF Origin-cert til datagaarden som for de to andre, så strict kan pinnes pr. host.
+- **Zone-indstillinger aflæst via CF-API 2026-10-26:** `ssl=full`,
+  `min_tls_version=1.2`, `tls_1_3=on`, `always_use_https=off` (origin
+  301-redirecter selv HTTP→HTTPS på alle tre sites — verificeret udefra), HSTS
+  på zone-niveau (max-age 1 år, includeSubDomains, nosniff), `security_level=medium`,
+  `browser_check=on`, DNSSEC **ikke** aktiveret, ingen CAA-record. Zone-wide
+  indstillinger ændres aldrig uden at tænke på de ~18 andre sites i zonen.
 
 ### 4.4 Mail-DNS — VIGTIGT: to zoner, kun CF'ens gælder udadtil
 
@@ -156,6 +173,14 @@ besvares IKKE udadtil. Verden ser kun CF-zonen.
 > forbliver kosmetiske (usynlige udadtil) — harmløst, men værd at vide.
 > Forbedringspunkter: DMARC er `p=none` (kun monitorering); SPF-legacy-listen
 > kan trimmes (bl.a. den døde `a:cbcit.dk`-mekanisme).
+
+**Audit-fund 2026-10-26 (mail-autenticitet, åbne punkter — ejes af Johan):**
+
+| Domæne | Status | Konsekvens |
+|---|---|---|
+| `cbcit.dk` | SPF autoriserer ~20 legacy-IP'er (88.99.140.x, 94.130.18.x, 185.21.233.x, 93.166.148.66, 65.21.90.159 …) + `a:spf1.kobalt.dk` + død `a:cbcit.dk`; 5 DNS-lookups (OK ≤ 10). DMARC `p=none`. Brevo-DKIM `brevo1/brevo2` OK. | Enhver der i dag råder over de gamle IP'er kan sende som `@cbcit.dk`. Ryd SPF, derefter DMARC → `quarantine` efter nogle ugers rene rapporter. |
+| `datagaarden.dk` | SPF `include:spf.protection.outlook.com include:mail.iteras.dk include:spf.cbcit.dk ip4:87.55.238.154 -all` (8 lookups). **Ingen DMARC-record.** Ingen Brevo-DKIM (kun MS365 `selector1`). DNS hos **wwi**, ikke CF. | WP-mails fra sitet (Contact Form 7) sendes via Brevo uden alignet DKIM → fejler, hvis DMARC skærpes. Opret DMARC `p=none` + autentificér domænet i Brevo FØR enforcement. |
+| `event.cbcit.dk` | Ingen egne mail-records (afsender er `noreply@cbcit.dk`). | Ingen handling. |
 
 ---
 
