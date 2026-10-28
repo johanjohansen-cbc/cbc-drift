@@ -130,23 +130,25 @@ LB-net 185.21.232.x), `stage.cbcit.dk` → **Cloudflare Pages** (`cbc-stage.page
 
 ### 4.3 SSL/TLS & Origin-certifikater (verificeret i dashboard 2026-07-20)
 
-- **Encryption mode: `Full` — med "Automatic mode" aktiveret (~2026-06-23).**
-  ⚠️ Afviger fra det tilsigtede *Full (strict)* (prod-dagens opsætning). Automatic
-  har formentlig valgt Full fordi zonen også proxier hosts på Kents LB, hvis
-  certs CF ikke kan validere. **Anbefaling:** pin *Full (strict)* for
-  `event.cbcit.dk`/`cbcit.dk` via en Configuration Rule (per-host), i stedet for
-  at hæve hele zonen.
+- **Encryption mode (zone): `Full` — med "Automatic mode" aktiveret (~2026-06-23).**
+  Zonen deles med ~18 hosts (bl.a. Kents LB), hvis certs CF ikke kan validere, så
+  zone-niveauet hæves bevidst IKKE. I stedet er *Full (strict)* pinnet **pr. host**
+  via Configuration Rules (ruleset "CBC config settings", fase
+  `http_config_settings`, id `592ffe8d…`, læst/skrevet via API 2026-10-28):
+  `event.cbcit.dk` (siden prod-dagen 2026-07-10) · `cbcit.dk` + `www` (juli 2026) ·
+  `api.cbcit.dk` (Kents LB, Origin CA) · **`datagaarden.dk` + `www` (2026-10-28,
+  regel-id `610ee39b…`, audit-punkt 9)**. Alle CBC-origins kører dermed Strict,
+  verificeret udefra 28/10 (200/301, ingen 526). IDN-aliasset `datagården.dk` er
+  bevidst IKKE med (intet cert, kun redirect). Rollback ved 526: slet reglen
+  (`DELETE /zones/{zid}/rulesets/592ffe8d…/rules/{rule-id}`) — CF falder tilbage
+  til zonens `Full`.
 - **Origin Certificates** (CF-signerede, installeret på boksen):
   `cbcit.dk` + `www.cbcit.dk` → udløb **2041-07-12** · `event.cbcit.dk` +
   `*.event.cbcit.dk` → udløb **2041-07-06**. **`datagaarden.dk` + `www`: Let's
   Encrypt via Plesk SSL It!** (siden 2026-10-28, udløb 2027-01-26, fornyes
   automatisk af `keep-secured`-cronen; HTTP-01 virker gennem CF). CF Origin CA
   var ikke muligt, fordi datagaarden.dk ikke er en zone på kontoen. Dermed har
-  alle tre origins CF-validérbare certs. **Åbent:** pin `SSL: Strict` pr. host via
-  en Configuration Rule (hostname in {event.cbcit.dk, cbcit.dk, www.cbcit.dk,
-  datagaarden.dk, www.datagaarden.dk} — IKKE IDN-aliasset, som kun redirecter og
-  intet cert har). API-tokenet mangler Config Rules-scope → gøres i dashboardet;
-  test alle tre sites straks efter, 526 = slet reglen.
+  alle tre origins CF-validérbare certs, og Strict er pinnet pr. host (se ovenfor).
 - **Zone-indstillinger aflæst via CF-API 2026-10-26:** `ssl=full`,
   `min_tls_version=1.2`, `tls_1_3=on`, `always_use_https=off` (origin
   301-redirecter selv HTTP→HTTPS på alle tre sites — verificeret udefra), HSTS

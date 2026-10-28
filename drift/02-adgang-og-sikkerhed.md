@@ -21,7 +21,7 @@
 | **WP-admin (event)** | `https://event.cbcit.dk/wp-admin/` | WP-login (+ magic-link for deltagere på `/login/`) | Bag Cloudflare. `FORCE_SSL_ADMIN=true`. **`wp-login.php` har CF Managed Challenge** (siden 2026-10-26, kun denne host) og brugernavns-enumeration er lukket (§7.2d). |
 | **WP-admin (cbcit.dk)** | `wps-hide-login` — login-URL'en er skjult (`/wp-login.php` → 404) | WP-login | Bag Cloudflare. Wordfence + Turnstile på login og checkout. |
 | **WP-admin (datagaarden)** | `wps-hide-login` — login-URL'en er skjult | WP-login | Bag Cloudflare (CF for SaaS, siden 2026-08-26). Wordfence aktiv. |
-| **Cloudflare-dashboard** | `dash.cloudflare.com` (konto CBC IT v2) | CF-login (2FA) | DNS/WAF/Access/Tunnel-styring. API-token med Zone WAF Edit/Cache Rules/Analytics Read ligger som bruger-miljøvariabel `CF_API_TOKEN` på Johans PC (ingen udløbsdato) — kun host-scopede regler laves via API. |
+| **Cloudflare-dashboard** | `dash.cloudflare.com` (konto CBC IT v2) | CF-login (2FA) | DNS/WAF/Access/Tunnel-styring. API-token med Zone WAF Edit/Cache Rules/Config Rules Edit/Analytics Read ligger som bruger-miljøvariabel `CF_API_TOKEN` på Johans PC (ingen udløbsdato) — kun host-scopede regler laves via API. |
 | **Hetzner-konsol** | `console.hetzner.cloud` | Hetzner-login (2FA) | Power-cycle, snapshots, noVNC. Snapshot-API-token ligger DPAPI-krypteret i `C:\Users\JohanJohansen\cbc-ops\hetzner-token.xml` på Johans PC. |
 
 **Alle logins → break-glass (07).** MFA: Cloudflare + Hetzner har 2FA (07 dækker
