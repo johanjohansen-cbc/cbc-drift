@@ -36,9 +36,19 @@ ikke verificeret (panelet kan kun nås via Access/tunnel, så lav risiko).
   privilegerede konti (`Magic_Link::PRIVILEGED_CAP = edit_posts`), så admins kan
   kun logge ind via `wp-login.php` (CF-challenge) = password + TOTP. Enrollment:
   cbcadmin ✅ (28/10); anja/jan afventer (reset-links sendt 28/10).
-- **cbcit.dk (johan + Kent) og datagaarden.dk (7 ansatte, alle administrator):
-  ÅBENT.** Wordfence Login Security-modulet i Wordfence er installeret men ikke
-  aktiveret. Næste trin efter event.
+- **cbcit.dk og datagaarden.dk: KRAV SAT 2026-10-28** via Wordfence Login
+  Security-modulet (i Wordfence 9.0.2): `enable-2fa=1`,
+  `required-2fa-role.administrator`, nådeperiode **7 dage på cbcit.dk (admins
+  `johan` + `jan`, frist 2026-11-04)** og **14 dage på datagaarden.dk (7 admins,
+  frist 2026-11-11; ingen nedgradering herfra — det er deres lokale admins
+  opgave)**. I nådeperioden vises en gul notits med fristen ved login; derefter
+  "LOGIN BLOCKED" indtil 2FA er aktiveret under Wordfence → Login Security →
+  Two-Factor Authentication (QR + recovery-koder). **WFLS-gotchas:** admins har
+  ingen nådeperiode uden per-bruger-flaget `allow_grace_period()` (sat på alle);
+  kravet håndhæves først, når mindst én admin har 2FA aktivt; `enable-2fa` tom =
+  2FA globalt fra (datagaarden havde rollekrav sat 26/10, men de var inaktive af
+  den grund). Låst admin: `Controller_Users::shared()->reset_grace_period($user)`
+  via wp eval (06 §1.13). Backups: `/var/backups/cbc-pre-deploy/pre-wfls-2fa-*`.
 
 ---
 

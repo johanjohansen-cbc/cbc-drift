@@ -95,6 +95,14 @@ Verificér identiteten først (ring). Derefter som root:
 ```bash
 ssh cbc-prod 'for k in _two_factor_enabled_providers _two_factor_provider _two_factor_totp_key _two_factor_backup_codes; do su -s /bin/bash event.cbcit.dk_x3pjx5okzbn -c "/opt/plesk/php/8.4/bin/php -d memory_limit=512M /usr/local/bin/wp --path=/var/www/vhosts/event.cbcit.dk/httpdocs user meta delete <id> $k"; done'
 ```
+**cbcit.dk / datagaarden.dk (Wordfence Login Security):** ny nådeperiode til én bruger:
+```bash
+ssh cbc-prod 'su -s /bin/bash cbcitdk -c "/opt/plesk/php/8.4/bin/php -d memory_limit=512M /usr/local/bin/wp --path=/var/www/vhosts/cbcit.dk/httpdocs --skip-themes eval \"WordfenceLS\\\\Controller_Users::shared()->reset_grace_period(get_user_by(\\\"id\\\",<id>));\""'
+```
+(datagaarden: sysuser `datagaardendk` + dens docroot). Mistet telefon: slet brugerens
+række i `wp_wfls_2fa_secrets` (så er 2FA inaktiv) og kør `reset_grace_period`.
+Alternativt kan en anden admin med 2FA nulstille via Wordfence → Login Security → brugerlisten.
+
 I nådeperioden kan vedkommende nu logge ind med password og sætte 2FA op igen.
 Efter `CBC_2FA_HARD_DEADLINE` (2026-11-04) afvises login uden 2FA → forlæng
 datoen midlertidigt i `wp-content/mu-plugins/cbc-admin-2fa.php` (+ FPM-reload),
