@@ -27,10 +27,18 @@
 **Alle logins → break-glass (07).** MFA: Cloudflare + Hetzner har 2FA (07 dækker
 recovery-koder). Plesk har MFA-extension installeret, men status for `admin` er
 ikke verificeret (panelet kan kun nås via Access/tunnel, så lav risiko).
-**⚠️ Åbent audit-fund 2026-10-26: INGEN WordPress-admin har 2FA** — event
-(cbcadmin + janadmin), cbcit.dk (johan + Kent), datagaarden.dk (7 ansatte, alle
-administrator). Wordfence Login Security er installeret på cbcit/datagaarden men
-aldrig aktiveret. Johan har udsat 2FA-runden (2026-10-26).
+**WordPress-2FA (audit-fund 3), status 2026-10-28:**
+- **event.cbcit.dk: HÅNDHÆVET.** Plugin `two-factor` 0.17.0 + mu-plugin
+  `cbc-admin-2fa.php` (§7.2d): kun TOTP + backup-koder; administratorer uden 2FA
+  kan kun nå deres profilside; fra **2026-11-04 23:59** afvises login uden 2FA.
+  Admins er nu `cbcadmin` (johan@), `anja@cbcit.dk`, `jan@cbcit.dk` — alle også
+  `cbc_participant`. `janadmin` (privat mail) er slettet. Magic-link afviser
+  privilegerede konti (`Magic_Link::PRIVILEGED_CAP = edit_posts`), så admins kan
+  kun logge ind via `wp-login.php` (CF-challenge) = password + TOTP. Enrollment:
+  cbcadmin ✅ (28/10); anja/jan afventer (reset-links sendt 28/10).
+- **cbcit.dk (johan + Kent) og datagaarden.dk (7 ansatte, alle administrator):
+  ÅBENT.** Wordfence Login Security-modulet i Wordfence er installeret men ikke
+  aktiveret. Næste trin efter event.
 
 ---
 
@@ -231,7 +239,8 @@ counter "cbc-egress-hits" → log "cbc-egress-drop" + drop     # cbc-egress-mode
 | **Imunify** | ImunifyAV 8.10.1 (Plesk-extension `imunify360`). **Malware-scan af alle vhosts DAGLIGT 03:00** (`MALWARE_SCAN_SCHEDULE interval=day` — sat 2026-10-27; indtil da stod skemaet reelt på månedligt trods hensigten 23/10). Realtime inotify-scan + Proactive Defense (`php_immunity`) aktive. Seneste fulde scans 22+23/10: 0 fund. |
 | **ModSecurity** | Aktiv (`SecRuleEngine On` i Apache; fail2ban-jail `plesk-modsecurity` har bannet ~90 IP'er i alt) |
 | **Cloudflare WAF** | Se §4.2 (Managed + OWASP + 2 custom Managed-Challenge-regler) |
-| **Wordfence** | Aktiv på `cbcit.dk` (9.0.2; `howGetIPs=HTTP_CF_CONNECTING_IP`, rate-limits throttle 240/120/60; sat 2026-10-21) og `datagaarden.dk` (9.0.2). **Ikke** på event (pluginet har egen login-rate-limit). Wordfence Login Security/2FA er IKKE aktiveret nogen steder (åbent). |
+| **Wordfence** | Aktiv på `cbcit.dk` (9.0.2; `howGetIPs=HTTP_CF_CONNECTING_IP`, rate-limits throttle 240/120/60; sat 2026-10-21) og `datagaarden.dk` (9.0.2). **Ikke** på event (pluginet har egen login-rate-limit). Wordfence Login Security/2FA er IKKE aktiveret på cbcit/datagaarden (åbent — se §1). |
+| **2FA (event)** | `two-factor` 0.17.0 + mu-plugin `cbc-admin-2fa.php`: påkrævet for rollen administrator (TOTP + backup-koder), hård deadline 2026-11-04. Nulstil en låst admin: `wp user meta delete <id> _two_factor_enabled_providers` + `_two_factor_provider` + `_two_factor_totp_key` + `_two_factor_backup_codes` (06 §1.13). |
 | **PHP `disable_functions`** | Alle tre FPM-pools (per-domæne Plesk PHP-settings, siden 2026-10-22): `opcache_get_status,exec,shell_exec,system,passthru,proc_open,popen,pcntl_exec`. `open_basedir` = egen vhost + `/tmp`. `expose_php=Off`, `allow_url_include=Off`. **Sættes via Plesk pr. domæne, ikke php.d** (domænernes php.ini autogenereres); globale ini-ændringer = drop-in i `/opt/plesk/php/8.4/etc/php.d/` (fx `zz-cbc-upload-progress.ini`, 21/10). |
 | **nginx request-grænser** | Alle tre vhosts (2026-10-22): `client_max_body_size` 8M (Plesk per-domæne), `client_body_timeout`/`client_header_timeout` 15s, `client_header_buffer_size` 1k, `large_client_header_buffers` 2 8k (§7.2). |
 | **WP-integritet** | `cbc-wp-integrity.timer` **dagligt 05:15** (drop-in `daily.conf`, siden 2026-10-23; var ugentlig): core+plugin-checksums alle 3 sites, mailer kun ved afvigelse. Log `/var/log/cbc-wp-integrity.log`. |
@@ -406,6 +415,7 @@ ser den ægte kunde-IP**; manglede før card-testing-angrebet) +
 |---|---|---|
 | `cbcit.dk` | `cbc-checkout-guard.php` (2026-10-21, card-testing-værn) | Store-API-checkout → 403; klassisk checkout kræver same-origin `Referer` + velocity-loft **3 ordrer/time/IP og 12 forsøg/time/IP** (transients, admins undtaget). Logger `[cbc-checkout-guard]` i vhost-`error_log`. |
 | `event.cbcit.dk` | `cbc-no-user-enum.php` (2026-10-26, audit-fund 4) | Anonyme får 404 på REST `/wp/v2/users*`, `?author=N` (ingen kanonisk redirect) og forfatterarkiver; generisk login-fejltekst. Indloggede (Gutenberg, brugerliste) uberørte. Rollback: slet filen + `systemctl reload plesk-php84-fpm`. |
+| `event.cbcit.dk` | `cbc-admin-2fa.php` (2026-10-28, audit-fund 3) | Kræver Two-Factor-pluginet. Filter `two_factor_providers` → kun TOTP + backup-koder. Filter `two_factor_is_required_for_user` → true for administratorer med provider, og for ALLE administratorer efter `CBC_2FA_HARD_DEADLINE` (2026-11-04 23:59). `admin_init`: administrator uden 2FA redirectes til `profile.php` (undtagen ajax/cron/CLI/admin-post). `admin_notices`: dansk vejledning. Rollback: slet filen + FPM-reload (så gælder kun pluginets frivillige 2FA). |
 
 > mu-plugins følger med Plesk-backuppen (ligger i docroot) men **ikke** med
 > plugin-repoets deploy. Ved genopbygning uden backup: genskab fra

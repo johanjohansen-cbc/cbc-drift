@@ -59,10 +59,10 @@ Tre Plesk-subscriptions, alle på IP `178.104.70.94`, alle `<sysuser>:psaserv`-e
 | **Sysuser** | `event.cbcit.dk_x3pjx5okzbn` (gruppe `psaserv`; temaer dog `psacln`) |
 | **Docroot** | `/var/www/vhosts/event.cbcit.dk/httpdocs` |
 | **WordPress** | **7.1.3** (major 2026-10-08; en_US-pakke + `WPLANG=da_DK`) |
-| **Plugins (aktive)** | `cbc-event-planner` **2.7.0** · `duplicate-post` 4.7 · mu-plugin `cbc-no-user-enum` (02 §7.2d) |
+| **Plugins (aktive)** | `cbc-event-planner` **2.7.0** · `duplicate-post` 4.7 · `two-factor` 0.17.0 (2FA, siden 2026-10-28) · mu-plugins `cbc-no-user-enum` + `cbc-admin-2fa` (02 §7.2d) |
 | **Tema** | `cbc-child` 0.6.7 (child af `twentytwentyfive` 1.5) |
 | **DB-prefix** | Custom (ikke `wp_`) |
-| **Brugere** | 183 (2 administratorer: `cbcadmin` [delt] + `janadmin`; ~100 `cbc_participant`, ~80 `cbc_vendor`). `blog_public=0`, `users_can_register=0`. |
+| **Brugere** | 182 (3 administratorer med 2FA-krav: `cbcadmin` [johan@cbcit.dk], `anja@cbcit.dk`, `jan@cbcit.dk` — alle tre også `cbc_participant`; ~100 `cbc_participant`, ~80 `cbc_vendor`). `janadmin` slettet 2026-10-28. `blog_public=0`, `users_can_register=0`. Admins logger ind via `wp-login.php` + TOTP; magic-link virker ikke for dem. |
 | **Fronting** | Cloudflare (proxy + WAF; Managed Challenge på `wp-login.php`; XML-RPC lukket) |
 | **Kode** | Deploy via bare repos `/var/git/cbc-event-planner.git` + `/var/git/cbc-child.git` (se 04-drift) |
 

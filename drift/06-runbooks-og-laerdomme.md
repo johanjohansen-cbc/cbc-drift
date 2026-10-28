@@ -90,7 +90,20 @@ Ret `Address` i `Match User datagaardendk`-blokken i `/etc/ssh/sshd_config`
 `sshd -T -C user=datagaardendk,host=x,addr=<ny-ip> | grep -i passwordauth` → yes.
 Datagaardens SPF-record viser deres udgående IP (pt. `ip4:87.55.238.154`).
 
-### 1.13 Åbn XML-RPC igen (hvis et plugin kræver det)
+### 1.13 Administrator på event er låst ude af 2FA (mistet telefon/backup-koder)
+Verificér identiteten først (ring). Derefter som root:
+```bash
+ssh cbc-prod 'for k in _two_factor_enabled_providers _two_factor_provider _two_factor_totp_key _two_factor_backup_codes; do su -s /bin/bash event.cbcit.dk_x3pjx5okzbn -c "/opt/plesk/php/8.4/bin/php -d memory_limit=512M /usr/local/bin/wp --path=/var/www/vhosts/event.cbcit.dk/httpdocs user meta delete <id> $k"; done'
+```
+I nådeperioden kan vedkommende nu logge ind med password og sætte 2FA op igen.
+Efter `CBC_2FA_HARD_DEADLINE` (2026-11-04) afvises login uden 2FA → forlæng
+datoen midlertidigt i `wp-content/mu-plugins/cbc-admin-2fa.php` (+ FPM-reload),
+lad personen enrolle, og sæt den tilbage. Ny admin: `wp user add-role <id> administrator`
+(beholder deltager-rollen) + `retrieve_password('<mail>')` via eval-file sender
+WP's standard-nulstillingsmail — **ikke** `wp user reset-password`, der kun
+sender en "password ændret"-notits uden link.
+
+### 1.14 Åbn XML-RPC igen (hvis et plugin kræver det)
 Fjern `location = /xmlrpc.php …`-blokken i `/var/www/vhosts/system/<dom>/conf/vhost_nginx.conf`
 + `plesk repair web <dom> -y`. Overvej i stedet at allowliste klientens IP i
 blokken. Begrund hvorfor — `system.multicall` og pingback er reelle angrebsflader.
