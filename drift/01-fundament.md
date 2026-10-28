@@ -138,10 +138,15 @@ LB-net 185.21.232.x), `stage.cbcit.dk` → **Cloudflare Pages** (`cbc-stage.page
   at hæve hele zonen.
 - **Origin Certificates** (CF-signerede, installeret på boksen):
   `cbcit.dk` + `www.cbcit.dk` → udløb **2041-07-12** · `event.cbcit.dk` +
-  `*.event.cbcit.dk` → udløb **2041-07-06**. **`datagaarden.dk` kører derimod
-  Plesks selvsignerede cert på origin** (udløb 2027-06-01) — virker kun fordi
-  zone-mode er `Full` (ikke strict). Audit-fund 2026-10-26, åbent: udsted et
-  CF Origin-cert til datagaarden som for de to andre, så strict kan pinnes pr. host.
+  `*.event.cbcit.dk` → udløb **2041-07-06**. **`datagaarden.dk` + `www`: Let's
+  Encrypt via Plesk SSL It!** (siden 2026-10-28, udløb 2027-01-26, fornyes
+  automatisk af `keep-secured`-cronen; HTTP-01 virker gennem CF). CF Origin CA
+  var ikke muligt, fordi datagaarden.dk ikke er en zone på kontoen. Dermed har
+  alle tre origins CF-validérbare certs. **Åbent:** pin `SSL: Strict` pr. host via
+  en Configuration Rule (hostname in {event.cbcit.dk, cbcit.dk, www.cbcit.dk,
+  datagaarden.dk, www.datagaarden.dk} — IKKE IDN-aliasset, som kun redirecter og
+  intet cert har). API-tokenet mangler Config Rules-scope → gøres i dashboardet;
+  test alle tre sites straks efter, 526 = slet reglen.
 - **Zone-indstillinger aflæst via CF-API 2026-10-26:** `ssl=full`,
   `min_tls_version=1.2`, `tls_1_3=on`, `always_use_https=off` (origin
   301-redirecter selv HTTP→HTTPS på alle tre sites — verificeret udefra), HSTS
