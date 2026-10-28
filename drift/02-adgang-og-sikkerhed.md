@@ -253,6 +253,7 @@ counter "cbc-egress-hits" → log "cbc-egress-drop" + drop     # cbc-egress-mode
 | **2FA (event)** | `two-factor` 0.17.0 + mu-plugin `cbc-admin-2fa.php`: påkrævet for rollen administrator (TOTP + backup-koder), hård deadline 2026-11-04. Nulstil en låst admin: `wp user meta delete <id> _two_factor_enabled_providers` + `_two_factor_provider` + `_two_factor_totp_key` + `_two_factor_backup_codes` (06 §1.13). |
 | **PHP `disable_functions`** | Alle tre FPM-pools (per-domæne Plesk PHP-settings, siden 2026-10-22): `opcache_get_status,exec,shell_exec,system,passthru,proc_open,popen,pcntl_exec`. `open_basedir` = egen vhost + `/tmp`. `expose_php=Off`, `allow_url_include=Off`. **Sættes via Plesk pr. domæne, ikke php.d** (domænernes php.ini autogenereres); globale ini-ændringer = drop-in i `/opt/plesk/php/8.4/etc/php.d/` (fx `zz-cbc-upload-progress.ini`, 21/10). |
 | **nginx request-grænser** | Alle tre vhosts (2026-10-22): `client_max_body_size` 8M (Plesk per-domæne), `client_body_timeout`/`client_header_timeout` 15s, `client_header_buffer_size` 1k, `large_client_header_buffers` 2 8k (§7.2). |
+| **Security-headers + versions-disclosure (LAV-pakke 2026-10-28)** | Alle tre vhosts: `readme.html`/`license.txt` → 404 i nginx (filerne ligger stadig i docroot, så `verify-checksums` ikke klager), `Content-Security-Policy: frame-ancestors 'self'`; cbcit/datagaarden fik desuden `X-Frame-Options: SAMEORIGIN` + `Referrer-Policy` (HSTS + nosniff kom allerede fra WP-laget). Bevidst **ingen fuld CSP** (Woo/Quickpay/Turnstile/GA/Site Kit ville brække). mu-plugin `cbc-hide-version.php` fjerner WP-generator i head + feeds (§7.2d). **Ikke gjort:** `X-Powered-By: PleskLin` (Plesk-template `add_header` på server-niveau, kan ikke unsettes fra additional directives; løsning = custom Plesk-template eller CF Transform Rule — parkeret som kosmetisk). `?ver=7.1.3` på core-assets beholdt (CF-cache-busting). |
 | **WP-integritet** | `cbc-wp-integrity.timer` **dagligt 05:15** (drop-in `daily.conf`, siden 2026-10-23; var ugentlig): core+plugin-checksums alle 3 sites, mailer kun ved afvigelse. Log `/var/log/cbc-wp-integrity.log`. |
 | **Advisory-watch** | `cbc-advisory-watch.sh` dagligt 07:15 (PHP/WP/plugins/Plesk mod php.net, api.wordpress.org, Plesk-autoinstaller) + ugentlig "alt OK"-mail mandag 07:30. Log `/var/log/cbc-advisory-watch.log`. |
 | **Ordre-velocity (cbcit.dk)** | `cbc-woo-order-watch.sh` hver time :07 — mailer ved > 5 ordrer/time (card-testing-værn, 2026-10-21). |
@@ -329,6 +330,9 @@ på alle tre.
   ikke her (duplikat afvises af nginx).
 - **XML-RPC lukket (2026-10-26):** `location = /xmlrpc.php { return 403; }` —
   fjerner `system.multicall`-brute-force og pingback-SSRF. Ingen klienter bruger det.
+- **LAV-pakke (2026-10-28):** `readme.html`/`license.txt` → 404 (filer beholdt) +
+  `Content-Security-Policy: frame-ancestors 'self'` (clickjacking-værn for browsere,
+  der ignorerer XFO). Backup `vhost_nginx.conf.pre-lav-20261028`.
 
 **Verbatim kilde** (dump af `/var/www/vhosts/system/event.cbcit.dk/conf/vhost_nginx.conf`,
 2026-10-27 — det Plesk genererer af "Additional nginx directives"). Ved migrering
@@ -389,6 +393,11 @@ large_client_header_buffers 2 8k;
 
 # CBC 2026-10-26: xmlrpc.php lukket (system.multicall-brute-force + pingback-SSRF; ingen legitime klienter). Rollback: fjern blokken + plesk repair web event.cbcit.dk -y
 location = /xmlrpc.php { access_log off; return 403; }
+
+# CBC LAV 2026-10-28: WP-metafiler skjult (versions-disclosure). Filerne bliver liggende (wp core verify-checksums). Rollback: fjern blokken + plesk repair web event.cbcit.dk -y
+location ~* ^/(readme\.html|license\.txt)$ { access_log off; return 404; }
+# CBC LAV 2026-10-28: clickjacking-vaern for moderne browsere (XFO-aekvivalent). Bevidst INGEN fuld CSP (Woo/Quickpay/Turnstile/GA ville braekke).
+add_header Content-Security-Policy "frame-ancestors 'self'" always;
 ```
 
 > **Vedligehold:** ændres direktiverne i Plesk, opdatér dumpet her i samme
@@ -404,7 +413,11 @@ backup af Kents-LB-versionen i `/root/vhost_nginx.conf.datagaarden.pre-cf-flip`,
 backup før xmlrpc-blokken `.pre-xmlrpc-20261026`): CF-`set_real_ip_from`-listen
 (22 linjer, identisk med event-blokken) + `real_ip_header CF-Connecting-IP;` +
 origin-guard-linjen + **samme request-grænse-blok og `xmlrpc.php`-403-blok som
-event ovenfor** (kommentaren nævner `plesk repair web datagaarden.dk -y`).
+event ovenfor** (kommentaren nævner `plesk repair web datagaarden.dk -y`) +
+**LAV-blok 2026-10-28** (backup `.pre-lav-20261028`): `readme.html`/`license.txt`
+→ 404, `add_header X-Frame-Options "SAMEORIGIN" always;`, `add_header
+Referrer-Policy "strict-origin-when-cross-origin" always;` og
+`add_header Content-Security-Policy "frame-ancestors 'self'" always;`.
 
 Bemærk: IDN-aliasset `xn--datagrden-92a.dk` har sin egen Plesk-genererede
 server-blok, der KUN 301-redirecter til `https://datagaarden.dk` — den har
@@ -417,7 +430,9 @@ bevidst hverken real-ip eller guard (serverer intet indhold).
 (21 linjer, kopi af event-blokken — **nødvendig for at Woo/Wordfence/IP-blokering
 ser den ægte kunde-IP**; manglede før card-testing-angrebet) +
 `real_ip_header CF-Connecting-IP;` + origin-guard-linjen + request-grænse-blok +
-`xmlrpc.php`-403-blok. Apache fuldfører kæden med `mod_remoteip` (Plesk-default).
+`xmlrpc.php`-403-blok + **samme LAV-blok som datagaarden** (2026-10-28, backup
+`.pre-lav-20261028`: readme/license → 404, XFO, Referrer-Policy, CSP frame-ancestors).
+Apache fuldfører kæden med `mod_remoteip` (Plesk-default).
 
 ### 7.2d Must-use-plugins (ligger i `wp-content/mu-plugins/`, uden for git, ejet af sysuser 644)
 
@@ -426,6 +441,7 @@ ser den ægte kunde-IP**; manglede før card-testing-angrebet) +
 | `cbcit.dk` | `cbc-checkout-guard.php` (2026-10-21, card-testing-værn) | Store-API-checkout → 403; klassisk checkout kræver same-origin `Referer` + velocity-loft **3 ordrer/time/IP og 12 forsøg/time/IP** (transients, admins undtaget). Logger `[cbc-checkout-guard]` i vhost-`error_log`. |
 | `event.cbcit.dk` | `cbc-no-user-enum.php` (2026-10-26, audit-fund 4) | Anonyme får 404 på REST `/wp/v2/users*`, `?author=N` (ingen kanonisk redirect) og forfatterarkiver; generisk login-fejltekst. Indloggede (Gutenberg, brugerliste) uberørte. Rollback: slet filen + `systemctl reload plesk-php84-fpm`. |
 | `event.cbcit.dk` | `cbc-admin-2fa.php` (2026-10-28, audit-fund 3) | Kræver Two-Factor-pluginet. Filter `two_factor_providers` → kun TOTP + backup-koder. Filter `two_factor_is_required_for_user` → true for administratorer med provider, og for ALLE administratorer efter `CBC_2FA_HARD_DEADLINE` (2026-11-04 23:59). `admin_init`: administrator uden 2FA redirectes til `profile.php` (undtagen ajax/cron/CLI/admin-post). `admin_notices`: dansk vejledning. Rollback: slet filen + FPM-reload (så gælder kun pluginets frivillige 2FA). |
+| **alle tre** | `cbc-hide-version.php` (2026-10-28, LAV-pakke) | `remove_action('wp_head','wp_generator')` + `the_generator` → tom streng: ingen `<meta name="generator">` og ingen `<generator>` i feeds. datagaarden fik `mu-plugins/` oprettet ved samme lejlighed. Kildekopi `/root/cbc-hardening-2026-10/cbc-hide-version.php`. Rollback: slet filen. |
 
 > mu-plugins følger med Plesk-backuppen (ligger i docroot) men **ikke** med
 > plugin-repoets deploy. Ved genopbygning uden backup: genskab fra

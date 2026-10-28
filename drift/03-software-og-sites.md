@@ -107,20 +107,24 @@ Tre Plesk-subscriptions, alle på IP `178.104.70.94`, alle `<sysuser>:psaserv`-e
 
 ---
 
-## 4. Plesk-extensions (installeret)
+## 4. Plesk-extensions (installeret, verificeret 2026-10-28)
 
 `imunify360` (malware) · `one-drive-backup` · `letsencrypt` · `sectigo`/`symantec`
-(SSL) · `sslit` · `mfa` · `monitoring` · `git` · `wp-toolkit` · `nodejs` ·
-`laravel` · `log-browser` · `repair-kit` · `site-import` · `ntp-timesync` ·
-`advisor` · `sitejet` · `xovi` (SEO) · `configurations-troubleshooter` ·
-`ssh-terminal` · `composer`.
+(SSL) · `sslit` · `mfa` · `monitoring` · `git` · `wp-toolkit` · `log-browser` ·
+`repair-kit` · `ntp-timesync` · `advisor` · `configurations-troubleshooter`.
 
+> **Fjernet 2026-10-28 (LAV-pakke fra audit 26/10):** `laravel`, `nodejs`,
+> `composer`, `xovi` (SEO), `site-import`, `plesk-sitejet`, `ssh-terminal`
+> (web-shell som root i panelet). Ingen af dem var i brug. Geninstallér ved behov:
+> `plesk bin extension --install <id>`.
+>
+> **MFA-extensionen er installeret, men IKKE aktiveret for `admin`** (ingen
+> konfiguration fundet 2026-10-28). Aktivering sker i panelet med QR-scan (Johan).
+> Panelet nås kun via Cloudflare Access, som er eget 2FA-lag (02 §4.1).
+>
 > Audit-note 2026-10-26: **WP Toolkit har ingen registrerede WP-instanser**
 > (`plesk ext wp-toolkit --list` er tom) — dens auto-update-/scan-crons er
-> derfor no-ops; WP-vedligehold sker via wp-cli/advisory-watch. Flere extensions
-> bruges ikke (`sitejet`, `nodejs`, `laravel`, `composer`, `xovi`, `site-import`,
-> `ssh-terminal` = web-shell som root i panelet). Lav risiko fordi panelet kun
-> nås via Access/tunnel, men oprydning er en nem reduktion af angrebsflade.
+> derfor no-ops; WP-vedligehold sker via wp-cli/advisory-watch.
 
 ---
 
