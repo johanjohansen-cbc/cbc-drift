@@ -119,8 +119,9 @@ Tre Plesk-subscriptions, alle på IP `178.104.70.94`, alle `<sysuser>:psaserv`-e
 > `plesk bin extension --install <id>`.
 >
 > **MFA-extensionen er installeret, men IKKE aktiveret for `admin`** (ingen
-> konfiguration fundet 2026-10-28). Aktivering sker i panelet med QR-scan (Johan).
-> Panelet nås kun via Cloudflare Access, som er eget 2FA-lag (02 §4.1).
+> konfiguration fundet 2026-10-28). **Bevidst accepteret af Johan 2026-10-29:**
+> panelet nås kun via Cloudflare Access, som er eget 2FA-lag (02 §4.1). Aktivering
+> kan ske når som helst i panelet med QR-scan.
 >
 > Audit-note 2026-10-26: **WP Toolkit har ingen registrerede WP-instanser**
 > (`plesk ext wp-toolkit --list` er tom) — dens auto-update-/scan-crons er
