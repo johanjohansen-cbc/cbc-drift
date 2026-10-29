@@ -153,7 +153,7 @@ options `cbc_contact_email` / `cbc_noreply_email`.
 ### 3.2 Autentificering (SPF/DKIM/DMARC)
 
 Det der **gælder udadtil** står i Cloudflare-zonen (01-fundament §4.4): `cbcit.dk`
-SPF `-all` (lang legacy-liste), Brevo-DKIM `brevo1/brevo2`, DMARC **`p=none`**.
+SPF `-all` (ryddet 2026-10-29: MS365 + Mailchimp + `a:spf1.kobalt.dk`), Brevo-DKIM `brevo1/brevo2`, DMARC **`p=none`**.
 Plesks lokale BIND-zoner har egne SPF/DKIM/DMARC-records (`p=quarantine`), men de
 besvares ikke udadtil og er kosmetiske. Plesk kører daglig DMARC-aggregate-rapport.
 Status og åbne punkter pr. domæne (SPF-oprydning, DMARC for datagaarden.dk,
@@ -166,8 +166,9 @@ Brevo-autentificering af datagaarden.dk): tabellen i 01 §4.4.
 > SpamAssassin / -0,5 body) skyldtes overvejende testmailens rå indhold uden
 > `Email\Layout::wrap`-templaten — ikke transporten. **Restpunkter (lav prioritet):**
 > `_dmarc.cbcit.dk` står på `p=none` (kun monitorering — overvej `p=quarantine`
-> efter en periode med rene DMARC-rapporter); SPF-recorden er en lang legacy-liste
-> der kan trimmes. Re-test efter enhver ændring i mail-DNS.
+> efter en periode med rene DMARC-rapporter — og først efter header-test af
+> server-cron-mails). SPF-recorden blev trimmet 2026-10-29 (01 §4.4).
+> Re-test efter enhver ændring i mail-DNS.
 
 ### 3.3 Mail-kaprings-invariant (KRITISK)
 

@@ -167,26 +167,26 @@ besvares IKKE udadtil. Verden ser kun CF-zonen.
 | Record | Værdi |
 |---|---|
 | MX `cbcit.dk` | `cbcit-dk.mail.protection.outlook.com` → **@cbcit.dk-mail = Microsoft 365** |
-| SPF `cbcit.dk` (TXT) | Lang legacy-liste: mange ip4/ip6 + `include:spf.protection.outlook.com`, `include:servers.mcsv.net` (Mailchimp), `include:spf.simply.com`, `a:spf1.kobalt.dk`, `a:cbcit.dk` `-all`. **Indeholder IKKE Brevo.** (⚠️ `a:cbcit.dk` resolver til CF-proxy-IP'er, ikke origin — død vægt.) |
+| SPF `cbcit.dk` (TXT) | **Ryddet 2026-10-29:** `v=spf1 include:spf.protection.outlook.com include:servers.mcsv.net a:spf1.kobalt.dk -all` (MS365 + Mailchimp + Kobalt-mailcluster; 3 lookups). **Indeholder IKKE Brevo** (Brevo-mails sendes som `noreply@cbcit.dk` og godkendes via DKIM-alignment, ikke SPF). `a:spf1.kobalt.dk` **fjernes 2027-01-01** (Kents legacy, aftalt m. Johan). Før-værdi + rollback: `/root/cbc-hardening-2026-10/README.md` (29/10). |
 | DKIM | `brevo1/brevo2._domainkey` → Brevo · `k2/k3` → Mailchimp · flere → Amazon SES (root, `mail.`, `inbound.`) |
 | DMARC `_dmarc.cbcit.dk` | `v=DMARC1; p=none; rua=…dmarc-reports.cloudflare.net` — **p=none, IKKE quarantine** (CF DMARC Management) |
 | `event.cbcit.dk` | **INGEN SPF-, DKIM- eller DMARC-records i CF-zonen** |
-| Øvrig mail-infra | `inbound.cbcit.dk` MX → Amazon SES inbound · `smtp-relay-1` → SES SMTP · `mail.cbcit.dk` SPF → SES · `spf.cbcit.dk` (SPF-makro m. `include:spf.brevo.com`) |
+| Øvrig mail-infra | `inbound.cbcit.dk` MX → Amazon SES inbound · `smtp-relay-1` → SES SMTP · `mail.cbcit.dk` SPF → SES · `spf.cbcit.dk` (SPF-makro, bruges kun af `datagaarden.dk`; ryddet 2026-10-29 til `include:spf.protection.outlook.com include:spf.brevo.com include:amazonses.com a:spf1.kobalt.dk -all`) |
 
 > **✅ Empirisk afklaret 2026-07-20:** Event-mails afsendes som **`noreply@cbcit.dk`**
 > (ikke @event.cbcit.dk), og Brevo DKIM-signerer alignet med `cbcit.dk` —
 > mail-tester.com: **SPF ✓ DKIM ✓ DMARC ✓** (7,6/10; fradrag var testmail-indhold,
 > ikke autentificering). Se 04-drift §3.2. Plesk-zonens `event.cbcit.dk`-records
 > forbliver kosmetiske (usynlige udadtil) — harmløst, men værd at vide.
-> Forbedringspunkter: DMARC er `p=none` (kun monitorering); SPF-legacy-listen
-> kan trimmes (bl.a. den døde `a:cbcit.dk`-mekanisme).
+> Forbedringspunkter: DMARC er `p=none` (kun monitorering). SPF-legacy-listen
+> blev trimmet 2026-10-29 (se tabellen nedenfor).
 
 **Audit-fund 2026-10-26 (mail-autenticitet, åbne punkter — ejes af Johan):**
 
 | Domæne | Status | Konsekvens |
 |---|---|---|
-| `cbcit.dk` | SPF autoriserer ~20 legacy-IP'er (88.99.140.x, 94.130.18.x, 185.21.233.x, 93.166.148.66, 65.21.90.159 …) + `a:spf1.kobalt.dk` + død `a:cbcit.dk`; 5 DNS-lookups (OK ≤ 10). DMARC `p=none`. Brevo-DKIM `brevo1/brevo2` OK. | Enhver der i dag råder over de gamle IP'er kan sende som `@cbcit.dk`. Ryd SPF, derefter DMARC → `quarantine` efter nogle ugers rene rapporter. |
-| `datagaarden.dk` | SPF `include:spf.protection.outlook.com include:mail.iteras.dk include:spf.cbcit.dk ip4:87.55.238.154 -all` (8 lookups). **Ingen DMARC-record.** Ingen Brevo-DKIM (kun MS365 `selector1`). DNS hos **wwi**, ikke CF. | WP-mails fra sitet (Contact Form 7) sendes via Brevo uden alignet DKIM → fejler, hvis DMARC skærpes. Opret DMARC `p=none` + autentificér domænet i Brevo FØR enforcement. |
+| `cbcit.dk` | **SPF ryddet 2026-10-29** (alle ~20 legacy-IP'er, død `a:cbcit.dk` og `include:spf.simply.com` fjernet; de gamle IP'er var døde TDC/Kobalt-hosts eller fremmede Hetzner-kunder). Tilbage: MS365 + Mailchimp + `a:spf1.kobalt.dk` (til 2027-01-01). 3 lookups. DMARC `p=none`. Brevo-DKIM `brevo1/brevo2` OK. | **Udestår:** DMARC → `quarantine`, men FØRST efter header-test af server-cron-mails (`root@server.cbcit.dk` via Brevo) viser alignet DKIM — ellers ryger alarm-mails i spam. Tidligst 2–3 uger efter SPF-ændringen. |
+| `datagaarden.dk` | SPF `include:spf.protection.outlook.com include:mail.iteras.dk include:spf.cbcit.dk ip4:87.55.238.154 -all` (7 lookups efter makro-oprydning 29/10). **Ingen DMARC-record.** Ingen Brevo-DKIM (kun MS365 `selector1`). DNS hos **wwi**, ikke CF. | WP-mails fra sitet (Contact Form 7) sendes via Brevo uden alignet DKIM → fejler, hvis DMARC skærpes. Opret DMARC `p=none` + autentificér domænet i Brevo FØR enforcement. |
 | `event.cbcit.dk` | Ingen egne mail-records (afsender er `noreply@cbcit.dk`). | Ingen handling. |
 
 ---
