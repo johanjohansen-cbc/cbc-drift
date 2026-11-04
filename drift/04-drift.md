@@ -111,14 +111,15 @@ reminder-cron > 26 t eller outbox har hængende mails > 30 min (se `04-hosting �
 |---|---|---|---|
 | `/etc/cron.d/cbc-security-updates` → `cbc-security-updates.sh` | hver 4. t (:45) | Plesk-PHP + Ubuntu-security + cloudflared/Imunify via apt; genstarter FPM hvis pakken ikke gør | kun ved ændring eller fejl |
 | `/etc/cron.d/cbc-advisory-watch` → `cbc-advisory-watch.sh check`/`weekly` | 07:15 dagligt / man 07:30 | PHP/WP/plugin/Plesk-versioner mod upstream; changelog-scan for sikkerheds-ord | ved afvigelse / altid mandag ("alt OK") |
-| `/etc/cron.d/cbc-egress-report` → `cbc-egress-report.sh` | 06:55 dagligt | Opsummering af web-egress-drops | **altid** (udebleven mail = fejl) |
+| `/etc/cron.d/cbc-egress-report` → `cbc-egress-report.sh` | 06:55 dagligt | Opsummering af web-egress-drops; pinger derefter healthchecks.io (`egress`, §4) | **altid** (udebleven mail = fejl) |
+| `/etc/cron.d/cbc-backup-check` → `cbc-backup-check.sh` (siden 2026-11-04) | 06:40 dagligt | Tjekker at nattens Plesk-backup er < 26 t gammel, `status_OK` + `dumpresult_SUCCESS` og sendt til OneDrive; pinger healthchecks.io (`backup`, OK eller `/fail`). `-n` = kun tjek | — (alarm kommer fra healthchecks.io) |
 | `/etc/cron.d/cbc-woo-order-watch` → `cbc-woo-order-watch.sh` | hver time (:07) | > 5 WooCommerce-ordrer/time på cbcit.dk → alarm m. IP-fordeling | kun ved overskridelse |
 | `cbc-wp-integrity.timer` → `cbc-wp-integrity.sh` | 05:15 dagligt | core+plugin-checksums alle 3 sites | kun ved afvigelse |
 | `cbc-web-egress-refresh.timer` | hver time (+2 min efter boot) | Opløs allowlist-hostnavne → nft-sets | — |
 | `cbc-web-egress-ranges.timer` | søn 04:50 | Hent Google/Meta-ranges | ved fejl |
 | `cbc-fw-refresh.timer` | søn 04:30 | Opdatér CF-IP-sets i firewallen | ved ændring/fejl |
 | sysuser-crontab event: `cbc-update-notify.php` | man 07:30 UTC | Ventende WP-opdateringer på event | kun hvis noget venter |
-| **Johans PC:** Task Scheduler "CBC Hetzner ugentlig snapshot" | man 09:00 | Hetzner-snapshot (05 §1) | altid (OK/FEJL) |
+| **Johans PC:** Task Scheduler "CBC Hetzner ugentlig snapshot" | man 09:00 | Hetzner-snapshot (05 §1); pinger healthchecks.io (`snapshot`, OK eller `/fail`) siden 2026-11-04 | altid (OK/FEJL) |
 
 **Plesk/OS:** `/etc/cron.d/plesk-backup-manager-task` (backup-poller hvert 15. min),
 `imunify-*`, `plesk-outgoing-mail-statistics-poller`, `sysstat`, `e2scrub_all`;
@@ -195,7 +196,8 @@ subscription med mail-service tændt kaprer ellers MX/leveringen for `@cbcit.dk`
 | **Cloudflare** | Security → Events i dashboardet (Pro: 3 dages historik); GraphQL `firewallEventsAdaptive` via API-token (Analytics Read) |
 | **App-selvmonitorering** | Cron-sundheds-banner i wp-admin (se §2.2) |
 | **Backup-status** | Plesk Backup Manager + notifikations-mail til johan@; snapshot-mail fra Johans PC mandag |
-| **Ekstern uptime** | **Ingen** (afklaret 2026-10-26). Al overvågning er selvrapporterende fra boksen — en angriber med root kan tie den. Anbefaling: ekstern dead-man/uptime-monitor (fx healthchecks.io-ping fra en cron + HTTP-check på de tre forsider). |
+| **Ekstern uptime** | **UptimeRobot** (HTTP-oppetid på sitene; alarm til johan@ — konto/login → 07). Oplyst 2026-11-04; tjek at alle tre forsider + `plesk-event.cbcit.dk` er med. |
+| **Ekstern dead-man (healthchecks.io, siden 2026-11-04)** | Tre checks, alarm til johan@ ved udebleven ping (login → 07): **`egress`** (periode 1 d, grace 1 t) fra `cbc-egress-report`-cron; **`backup`** (1 d / 2 t) fra `cbc-backup-check.sh` 06:40; **`snapshot`** (7 d / 1 d) fra `hetzner-snapshot.ps1` på Johans PC. Server-siden: `/usr/local/sbin/cbc-hc-ping.sh <navn> [rc]` læser URL'er fra `/etc/cbc-healthchecks.conf` (600 root, ikke i git); `rc≠0` → `/fail`-ping = straks-alarm. Rollback + detaljer: `/root/cbc-hardening-2026-10/README.md` (2026-11-04). Dermed er det selvrapporterende hul fra audit 26/10 lukket for de tre vigtigste jobs; de øvrige cron-mails er stadig kun selvrapporterende. |
 
 ---
 

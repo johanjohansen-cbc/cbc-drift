@@ -258,10 +258,13 @@ counter "cbc-egress-hits" → log "cbc-egress-drop" + drop     # cbc-egress-mode
 | **Advisory-watch** | `cbc-advisory-watch.sh` dagligt 07:15 (PHP/WP/plugins/Plesk mod php.net, api.wordpress.org, Plesk-autoinstaller) + ugentlig "alt OK"-mail mandag 07:30. Log `/var/log/cbc-advisory-watch.log`. |
 | **Ordre-velocity (cbcit.dk)** | `cbc-woo-order-watch.sh` hver time :07 — mailer ved > 5 ordrer/time (card-testing-værn, 2026-10-21). |
 
-> **Strukturelt hul (audit 2026-10-26):** al overvågning er selvrapporterende fra
-> boksen (mails fra serveren). En angriber med root kan tie den. Der findes ingen
-> ekstern uptime-/dead-man-monitor. Undtagelsen er Hetzner-snapshot-mailen, der
-> sendes fra Johans PC.
+> **Strukturelt hul (audit 2026-10-26) — delvist lukket 2026-11-04:** al
+> overvågning var selvrapporterende fra boksen (mails fra serveren), som en
+> angriber med root kan tie. Nu: **UptimeRobot** (ekstern HTTP-oppetid) og
+> **healthchecks.io dead-man-pings** fra egress-rapporten, et dagligt
+> Plesk-backup-tjek og Hetzner-snapshottet (detaljer og rollback i 04 §4 og
+> §2.3). Øvrige cron-mails er stadig kun selvrapporterende, og alle alarmer går
+> fortsat kun til johan@.
 
 ---
 
