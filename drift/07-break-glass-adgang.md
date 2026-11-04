@@ -42,7 +42,7 @@ CBC Event Planner er et WordPress-baseret tilmeldings-/konferencesystem til CBC'
 | Sites på boksen | **event.cbcit.dk** (WP 7.1.3, plugin cbc-event-planner 2.7.0 + tema cbc-child) · **cbcit.dk** (WP 7.1.3 + **WooCommerce-webshop m. QuickPay-betalingsgateway**) · **datagaarden.dk** (WP 7.1.3, bag Cloudflare for SaaS siden 2026-08-26 — DNS hos wwi, custom hostnames i cbcit.dk-zonen). Versions-frysen fra før konferencen er ophævet 2026-10-08. | /var/www/vhosts/<domæne>/httpdocs |
 | Kode-leverance | Self-hosted bare git repo + privat GitHub-mirror | Server /var/git/*.git + GitHub johanjohansen-cbc |
 | Udgående mail | Postfix (kun loopback) → Brevo SMTP-relay (port 587) | Brevo Free-plan; SASL-creds på serveren |
-| Backup | Plesk Backup Manager → Microsoft OneDrive (M365), password-krypteret · Hetzner-snapshot ugentligt fra Johans PC | OneDrive retention 7 dage · Hetzner (3 ugentlige) |
+| Backup | Plesk Backup Manager → Microsoft OneDrive (M365), password-krypteret · Hetzner-snapshot ugentligt fra Johans PC | OneDrive retention 30 dage (fra 2026-11-04) · Hetzner (3 ugentlige) |
 | Edge/sikkerhed | Cloudflare (proxied + WAF + Managed-Challenge-regler + Access) + Hetzner Cloud Firewall `cbc-edge` (id 11085732) + host-nftables `cbc_fw` (ind + udgående allowlist for web-processer) + origin-guard + ModSecurity/Imunify/fail2ban/Wordfence | Cloudflare + Hetzner + serveren |
 | Patch-automatik | `cbc-security-updates.sh` hver 4. time (OS-security, Plesk-PHP, cloudflared, Imunify) + Plesk-natkørsel + advisory-watch (daglig varsling, ugentlig "alt OK"-mail) | Serveren (cron) — se driftsmanual 04 §2.3 |
 

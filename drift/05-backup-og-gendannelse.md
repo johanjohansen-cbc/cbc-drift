@@ -26,7 +26,7 @@
 | Repository | `one-drive-backup` (ekstern) |
 | Interval | Dagligt (`period=86400`), fuld ugentligt (`full_backup_period=604800`) |
 | Tidspunkt | 00:00 |
-| Rotation | **7** (beholder 7 backups) |
+| Rotation | **30** (beholder 30 backups; hævet fra 7 den 2026-11-04 i Backup Manager → Schedule, verificeret i `BackupsScheduled`) |
 | Indhold | Alt ved domænet (`with_content=true`, mail inkluderet) |
 | Notifikation | `johan@cbcit.dk` |
 | Sidste kørsel | 2026-10-26 00:13 (inkrementel; seneste fulde 2026-10-21 00:25, 8,7 GB), valideret samme dag. Lokale dump-metadata pr. domæne i `/var/lib/psa/dumps/domains/`. |
@@ -47,7 +47,7 @@
   **selv-dekrypterende**: nøglen ligger i selve backuppen, så alle credentials
   (sysuser-/DB-passwords) kan gendannes af enhver med adgang til
   OneDrive-filerne (bevist under drillen). For de gamle backupper er M365 MFA
-  eneste værn; de roterer ud af 7-dages-vinduet af sig selv.
+  eneste værn; de er for længst roteret ud af vinduet.
 - **Lagringsformat i OneDrive:** extensionen gemmer backups **chunket** — de
   synlige filer `backup_X.tar_size_N` er få-bytes stub-markører (N = ægte
   størrelse). **Manuel download fra OneDrive-webben er derfor UBRUGELIG** til
@@ -62,10 +62,11 @@
   Advarsels-detaljer pr. backup:
   `/var/lib/psa/dumps/.discovered/<dump>/dumpresult_WARNINGS`.
 
-> **Bemærk retention vs. rotation:** kun 7 backups beholdes på OneDrive. For et
-> RPO længere tilbage end ~1 uge er man afhængig af Hetzner-snapshots. Overvej at
-> hæve rotation eller tage et manuelt snapshot før store ændringer (fx post-konference-
-> opgradering).
+> **Bemærk retention vs. rotation:** 30 backups beholdes på OneDrive (siden
+> 2026-11-04; før var det 7). For et RPO længere tilbage end ~1 måned er man
+> afhængig af OneDrive-papirkurv/versionshistorik eller Hetzner-snapshots. Tag
+> stadig et manuelt snapshot før store ændringer. Åbent: et backup-mål, serveren
+> kun kan skrive til og ikke slette fra (Storage Box med snapshots / S3 Object Lock).
 
 ---
 
