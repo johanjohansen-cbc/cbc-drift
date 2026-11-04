@@ -1,0 +1,8 @@
+[Unit]
+Description=CBC web-egress: fetch Google/Meta IP ranges -> /etc/cbc-web-egress-ranges.txt
+After=network-online.target cbc-fw.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/cbc-web-egress-ranges-fetch.sh

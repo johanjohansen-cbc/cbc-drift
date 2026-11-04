@@ -1,0 +1,8 @@
+[Unit]
+Description=CBC web-egress allowlist refresh (resolve hosts -> nft sets web_allow4/6)
+After=network-online.target cbc-fw.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/cbc-web-egress-refresh.sh

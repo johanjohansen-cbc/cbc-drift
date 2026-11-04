@@ -1,0 +1,97 @@
+table inet cbc_fw {
+    set cf4 {
+        type ipv4_addr
+        flags interval
+        elements = { 173.245.48.0/20,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,141.101.64.0/18,108.162.192.0/18,190.93.240.0/20,188.114.96.0/20,197.234.240.0/22,198.41.128.0/17,162.158.0.0/15,104.16.0.0/13,104.24.0.0/14,172.64.0.0/13,131.0.72.0/22 }
+    }
+    set cf6 {
+        type ipv6_addr
+        flags interval
+        elements = { 2400:cb00::/32,2606:4700::/32,2803:f800::/32,2405:b500::/32,2405:8100::/32,2a06:98c0::/29,2c0f:f248::/32 }
+    }
+    # CBC blast-radius 2026-10-22: allowlist-IP'er for web-uid'ernes udgaaende trafik.
+    # Fyldes/forfriskes af /usr/local/sbin/cbc-web-egress-refresh.sh (timer, hver time) ud fra
+    # /etc/cbc-web-egress-hosts.txt. Elementer har timeout 8d, saa en IP der forsvinder fra DNS
+    # lever en uge videre (ingen flapping). Boot: cbc-fw-apply.sh genindlaeser sidst-kendte IP'er.
+    set web_allow4 {
+        type ipv4_addr
+        flags timeout
+    }
+    set web_allow6 {
+        type ipv6_addr
+        flags timeout
+    }
+    # Netvaerks-ranges for udbydere med hurtigt roterende IP'er (Google goog.json, Meta AS32934).
+    # Fyldes af cbc-web-egress-refresh.sh fra /etc/cbc-web-egress-ranges.txt (skrives af
+    # cbc-web-egress-ranges-fetch.sh, ugentligt). auto-merge = overlappende prefixes tolereres.
+    set web_allow_net4 {
+        type ipv4_addr
+        flags interval
+        auto-merge
+    }
+    set web_allow_net6 {
+        type ipv6_addr
+        flags interval
+        auto-merge
+    }
+    chain input {
+        type filter hook input priority 0; policy drop;
+        iif "lo" accept
+        ct state established,related accept
+        ct state invalid drop
+        meta l4proto icmp accept
+        meta l4proto ipv6-icmp accept
+        tcp dport 22 accept
+
+        # ACME HTTP-01 (2026-08-17): Lets Encrypt-validering kraever port 80 aaben for ALLE
+        # kilde-IPer (LE publicerer ikke sine validerings-IPer). Port 80 serverer kun redirects+ACME.
+        tcp dport 80 counter accept comment "ACME-HTTP01-OPEN"
+        ip saddr @cf4 tcp dport { 80, 443 } accept
+        ip6 saddr @cf6 tcp dport { 80, 443 } accept
+    }
+    chain output {
+        type filter hook output priority 0; policy drop;
+        oif "lo" accept
+        ct state established,related accept
+        ct state invalid drop
+        # CBC blast-radius 2026-10-22: web-uid'erne (PHP-FPM-pools + sysuser-cron/wp-cli) faar
+        # KUN det, web_egress tillader. Loopback til egen IP 178.104.70.94 og resolveren
+        # 127.0.0.53 gaar via lo og er accepteret ovenfor. Skal staa FOER de generelle port-accepts.
+        meta skuid { 10000, 10001, 10002 } jump web_egress comment "web-uids: event/cbcit/datagaarden"
+        meta l4proto icmp accept
+        meta l4proto ipv6-icmp accept
+        # DNS -> resolvere (Hetzner), begge familier
+        udp dport 53 accept
+        tcp dport 53 accept
+        # NTP tidssynk (systemd-timesyncd)
+        udp dport 123 accept
+        # DHCP lease-fornyelse (dhcp4: true)
+        udp dport 67 accept
+        # HTTP/S (apt, Plesk, Let's Encrypt, WP-updates, OneDrive-backup) + Brevo mail-relay 587
+        tcp dport { 80, 443, 587 } accept
+        # cloudflared tunnel (Vej A) - aktiver disse to naar Zero Trust slaas til:
+        udp dport 7844 accept
+        tcp dport 7844 accept
+        # Alt andet udgaaende: log (rate-limited) + drop, saa breakage er synligt i journald
+        limit rate 10/minute log prefix "cbc_fw egress-drop: " counter
+        counter drop
+    }
+    chain web_egress {
+        # Kun NYE forbindelser lander her (established/related + lo er allerede accepteret).
+        # Tilladt: TCP 443 (HTTPS-API'er) og 587 (Brevo-relay) til allowlist-IP'erne.
+        # + TCP 80 til hostlistens vaerter (2026-10-23, Johan "Go"): Really Simple SSL henter http://<eget domaene>
+        # for at teste https-redirect (class-admin.php:997). Ikke til Google/Meta-ranges.
+        ip daddr @web_allow4 tcp dport { 80, 443, 587 } accept
+        ip6 daddr @web_allow6 tcp dport { 80, 443, 587 } accept
+        ip daddr @web_allow_net4 tcp dport { 443, 587 } accept
+        ip6 daddr @web_allow_net6 tcp dport { 443, 587 } accept
+        # NTP (Wordfence Login Security tjekker klokken mod pool.ntp.org = roterende servere). Godkendt af Johan 22/10.
+        udp dport 123 accept comment "web-ntp"
+        # Alt andet: taelles + logges med uid (journalctl -k | grep cbc-egress-drop).
+        counter comment "cbc-egress-hits"
+        limit rate 300/minute burst 100 packets log prefix "cbc-egress-drop: " flags skuid
+        # TILSTAND: "return" = log-only (falder tilbage til de generelle port-regler = uaendret
+        # adfaerd). "drop" = haandhaev. Skift KUN via /usr/local/sbin/cbc-web-egress-mode.sh.
+        drop comment "cbc-egress-mode: enforce"
+    }
+}

@@ -1,0 +1,71 @@
+# CBC blast-radius 2026-10-22 — hostnavne som web-uid'erne (10000 event, 10001 cbcit, 10002 datagaarden)
+# maa kontakte udadtil paa TCP 443/587. Oploeses hver time af cbc-web-egress-refresh.sh.
+# En host pr. linje; '#' = kommentar. Efter aendring: systemctl start cbc-web-egress-refresh.service
+# Netvaerks-ranges (Google/Meta) ligger i /etc/cbc-web-egress-ranges.txt (autogenereret).
+# UDP 123 (NTP, Wordfence 2FA-tidstjek mod pool.ntp.org) er en portregel i web_egress, ikke en host.
+#
+# --- Opgavens faste allowlist ---
+smtp-relay.brevo.com
+api.quickpay.net
+payment.quickpay.net
+api.wordpress.org
+downloads.wordpress.org
+api.cloudflare.com
+challenges.cloudflare.com
+# --- Egne domaener bag Cloudflare (WP Site Health-loopback, Action Scheduler, cache-preload) ---
+# cbcit.dk/www.cbcit.dk staar i /etc/hosts -> egen IP -> lo -> altid tilladt (ingen linje noedvendig)
+event.cbcit.dk
+www.datagaarden.dk
+datagaarden.dk
+#
+# --- Godkendt af Johan 2026-10-22 ---
+# Facebook Pixel / Conversions API (datagaarden.dk, facebook_capi_integration_status=1) — plus Meta-ranges
+graph.facebook.com
+connect.facebook.net
+# Google Site Kit (datagaarden.dk): OAuth-proxy + Google-API'er — plus Google-ranges
+sitekit.withgoogle.com
+oauth2.googleapis.com
+www.googleapis.com
+analyticsdata.googleapis.com
+analyticsadmin.googleapis.com
+searchconsole.googleapis.com
+pagespeedonline.googleapis.com
+tagmanager.googleapis.com
+adsense.googleapis.com
+people.googleapis.com
+# A: Wordfence (cbcit.dk + datagaarden.dk) — regel-/signatur-opdateringer, scans
+noc1.wordfence.com
+noc3.wordfence.com
+noc4.wordfence.com
+www.wordfence.com
+# B: WooCommerce (cbcit.dk) — admin, marketplace, WooCommerce.com-forbindelse
+woocommerce.com
+api.woocommerce.com
+public-api.wordpress.com
+# C: Akismet (cbcit.dk) — <noegle>.rest.akismet.com peger paa samme IP'er (api.akismet.com)
+rest.akismet.com
+api.akismet.com
+# D: Mailchimp for WP (cbcit.dk), datacenter us9
+us9.api.mailchimp.com
+login.mailchimp.com
+# E: Opdaterings-/licens-tjek for betalte plugins/temaer (cbcit.dk; Flatsome ogsaa datagaarden.dk)
+www.wpdesk.net
+license.wpdesk.dev
+webappick.com
+plugin-updates.wp-migration.com
+redirect.wp-migration.com
+servmask.com
+api.uxthemes.com
+wpstorelocator.co
+# F (delvist): Complianz cookie-scan/-database (datagaarden.dk)
+complianz.io
+cookiedatabase.org
+# H: wp-admin dashboard-nyhedsfeed
+wordpress.org
+planet.wordpress.org
+#
+# --- FRAVALGT af Johan 2026-10-22 (kun notices/tracking/ukonfigureret) ---
+#really-simple-ssl.com  wpcode.com  www.wpfastestcache.com  www.mc4wp.com
+#api.wincher.com  my.yoast.com  tracking.yoast.com
+#api.mapbox.com  api.slack.com  api.telegram.org  acme-v02.api.letsencrypt.org  api.cloudways.com
+# 2026-10-23: api.bitbucket.org (WebAppick Product Feed henter reklame-notice fra Bitbucket-snippet) — fravalgt

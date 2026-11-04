@@ -1,0 +1,10 @@
+/var/log/cbc-security-updates.log /var/log/cbc-advisory-watch.log {
+    su root root
+    weekly
+    rotate 12
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 root root
+}

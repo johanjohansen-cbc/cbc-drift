@@ -1,0 +1,10 @@
+[Unit]
+Description=CBC web-egress ranges fetch, weekly (Sun 04:50)
+
+[Timer]
+OnCalendar=Sun *-*-* 04:50:00
+RandomizedDelaySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

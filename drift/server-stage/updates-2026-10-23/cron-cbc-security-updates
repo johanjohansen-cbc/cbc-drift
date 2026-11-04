@@ -1,0 +1,6 @@
+# CBC 2026-10-23: sikkerhedsopdateringer hver 4. time: Plesk-PHP (plesk-php8*) + Ubuntu-security (unattended-upgrade).
+# Supplerer Plesks natkoersel (50plesk-daily ~06:25) og apt-daily-upgrade (~02:10) - tidspunkterne undgaar begge.
+# Mailer johan@cbcit.dk KUN naar noget blev opgraderet (eller ved fejl). Log: /var/log/cbc-security-updates.log
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+45 0,4,8,12,16,20 * * * root /usr/local/sbin/cbc-security-updates.sh >/dev/null 2>&1

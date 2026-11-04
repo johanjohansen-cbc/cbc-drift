@@ -134,8 +134,8 @@ su -s /bin/bash event.cbcit.dk_x3pjx5okzbn -c "…/wp db import /var/backups/cbc
         `client_max_body_size`, Additional nginx directives, mu-plugins i docroot,
         sysuser-crontabs) FØLGER med subscription-backuppen.
         Kopier af scripts/konfig til genopbygning ligger i
-        `/root/cbc-hardening-2026-10/stage/` — og bør spejles i cbc-drift-repoet
-        ved næste lejlighed (åbent punkt).
+        `/root/cbc-hardening-2026-10/stage/` — spejlet i cbc-drift-repoet som
+        `drift/server-stage/` (2026-11-04; se dens README for hvad der mangler).
    6. Re-point DNS/firewall/tunnel (07) — ALDRIG mens scratch-/testserver
       stadig lever.
 3. **Kode** hentes uafhængigt fra GitHub-mirror (se `docs/05 §14.4`).
