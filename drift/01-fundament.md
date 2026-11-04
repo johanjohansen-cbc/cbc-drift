@@ -116,7 +116,7 @@ også zonen **`cbcnet.dk`** (‹UDFYLD: formål/indhold›).
 | `cbcit.dk` (+`www` CNAME) | A | 178.104.70.94 | ✅ Proxied |
 | `event.cbcit.dk` | A | 178.104.70.94 | ✅ Proxied |
 | `sites.cbcit.dk` | A | 178.104.70.94 | ✅ Proxied — "SaaS fallback-origin/CNAME-target for kundesites (datagaarden m.fl.)" |
-| `server.cbcit.dk` | A | 178.104.70.94 | ⚠️ **DNS only** — eksponerer origin-IP'en (CF's dashboard flager det). Bevidst? Mitigeret af firewall+origin-guard, men overvej at fjerne/omdøbe. |
+| `server.cbcit.dk` | A | 178.104.70.94 | **DNS only — BEVIDST (besluttet 2026-11-04, sikkerhedsplan Fase 5 pkt 8).** Navnet er serverens hostname, Postfix `myhostname`/HELO mod Brevo og CN i Plesk-panelets Let's Encrypt-cert (fornyes via HTTP-01 på port 80 → recorden SKAL pege direkte på origin; proxied/fjernet = cert-fornyelse fejler). IP'en står desuden i Received-headeren på alle alarm-mails, så den er ikke hemmelig. Værn mod direkte angreb = cbc_fw (443 kun fra CF) + origin-guard (02 §3/§6). Rør ikke. |
 | `plesk-event.cbcit.dk` | **Tunnel** | tunnel `cbc-plesk` | ✅ Proxied — "CF Access-gated Plesk panel via tunnel cbc-plesk (prod-dag 2026-07-10)" |
 
 **Zonen rummer desuden et større CBC-økosystem UDEN FOR denne boks** (dokumenteres
@@ -153,8 +153,12 @@ LB-net 185.21.232.x), `stage.cbcit.dk` → **Cloudflare Pages** (`cbc-stage.page
   `min_tls_version=1.2`, `tls_1_3=on`, `always_use_https=off` (origin
   301-redirecter selv HTTP→HTTPS på alle tre sites — verificeret udefra), HSTS
   på zone-niveau (max-age 1 år, includeSubDomains, nosniff), `security_level=medium`,
-  `browser_check=on`, DNSSEC **ikke** aktiveret, ingen CAA-record. Zone-wide
-  indstillinger ændres aldrig uden at tænke på de ~18 andre sites i zonen.
+  `browser_check=on`. DNSSEC og CAA: se status i sikkerhedsplanen Fase 5 pkt 8
+  (CAA-records på apex besluttet 2026-11-04: `issue` for pki.goog,
+  letsencrypt.org, ssl.com, sectigo.com, comodoca.com, digicert.com + `iodef`
+  johan@ — dækker alle udstedere set på zonens 44 navne 2026-11-04; DNSSEC
+  aktiveres i CF + DS hos Simply.com). Zone-wide indstillinger ændres aldrig
+  uden at tænke på de ~18 andre sites i zonen.
 
 ### 4.4 Mail-DNS — VIGTIGT: to zoner, kun CF'ens gælder udadtil
 
