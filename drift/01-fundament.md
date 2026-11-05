@@ -122,11 +122,17 @@ også zonen **`cbcnet.dk`** (‹UDFYLD: formål/indhold›).
 **Zonen rummer desuden et større CBC-økosystem UDEN FOR denne boks** (dokumenteres
 her som kontekst, drift af dem er ikke dækket af denne manual): `api.cbcit.dk`
 (91.98.12.232, "CBC backend API Hetzner LB"), `legacy.cbcit.dk` (deprecated CBCnet
-v4), shop-platform (`lb.shop`/`shop-template`/`shop-redirect`/`tjdata` → Kents
-LB-net 185.21.232.x), `stage.cbcit.dk` → **Cloudflare Pages** (`cbc-stage.pages.dev`),
+v4), shop-platform (`lb.shop`/`shop-template`/`tjdata` → Kents LB-net
+185.21.232.x), `stage.cbcit.dk` → **Cloudflare Pages** (`cbc-stage.pages.dev`),
 `cdn.cbcit.dk` → **R2-bucket `cbc-product-images`**, `datagaarden.cbcit.dk` +
-`docs.cbcit.dk` → Kents LB, dump/sponsor/remote/old-server/sftp-1/ext-ftp-selek
-(diverse eksterne IP'er), samt MS365-integrationsrecords.
+`docs.cbcit.dk` → Kents LB, dump/sponsor/ext-ftp-selek (eksterne IP'er), samt
+MS365-integrationsrecords. **Oprydning 2026-11-05 (sikkerhedsplan Fase 5):** seks
+forældede DNS-only A-records slettet efter Johans bekræftelse af, at IP'erne ikke
+længere er CBC's (dangling-record-risiko): `old-server` (88.99.74.189), `remote`
+(93.166.148.66), `sftp-1` (185.21.232.65), `shop-redirect` (185.21.232.7),
+`tjdata.dk.shop` (94.130.18.194) og `localhost` (127.0.0.1). Rollback: fuld
+zone-eksport fra før sletningen i `C:\Users\JohanJohansen\cbc-ops\cbcit.dk-zone-export-20261105.txt`
+(+ `dns-delete-20261105.txt` med record-id'er) på Johans PC.
 
 ### 4.3 SSL/TLS & Origin-certifikater (verificeret i dashboard 2026-07-20)
 
