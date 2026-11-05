@@ -216,7 +216,7 @@ counter "cbc-egress-hits" → log "cbc-egress-drop" + drop     # cbc-egress-mode
 |---|---|
 | Team-domæne | `fancy-sound-8625.cloudflareaccess.com` |
 | Access-app | **"CBC Plesk Panel"** (self-hosted) → destination `plesk-event.cbcit.dk` |
-| Policy | **"Allow cbcit.dk"** (Allow, 1 regel, legacy-format — reglen tillader efter navnet at dømme `@cbcit.dk`-mails; ‹verificér regel-indholdet ved lejlighed›) |
+| Policy | **"Allow cbcit.dk"** (Allow, 1 regel, legacy-format — **verificeret af Johan 2026-11-05: én Include-regel, Emails ending in `@cbcit.dk`, ingen Require/Exclude**. Næste skridt (ikke udført): Entra ID som identity provider, vejledning i "Entra ID og Intune"-dokumentet) |
 | Session-varighed | 24 timer |
 | Identity providers | "Accept all available identity providers" = On (default: One-time PIN via e-mail) |
 | Kapacitet | 1 aktiv bruger af 50 (free seats) |
