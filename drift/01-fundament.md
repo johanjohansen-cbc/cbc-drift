@@ -156,9 +156,17 @@ LB-net 185.21.232.x), `stage.cbcit.dk` → **Cloudflare Pages** (`cbc-stage.page
   `browser_check=on`. DNSSEC og CAA: se status i sikkerhedsplanen Fase 5 pkt 8
   (CAA-records på apex besluttet 2026-11-04: `issue` for pki.goog,
   letsencrypt.org, ssl.com, sectigo.com, comodoca.com, digicert.com + `iodef`
-  johan@ — dækker alle udstedere set på zonens 44 navne 2026-11-04; DNSSEC
-  aktiveres i CF + DS hos Simply.com). Zone-wide indstillinger ændres aldrig
-  uden at tænke på de ~18 andre sites i zonen.
+  johan@ — dækker alle udstedere set på zonens 44 navne 2026-11-04; CF
+  tilføjer selv matchende `issuewild`). **DNSSEC aktiv siden 2026-11-05:**
+  signering i CF (key tag 2371, alg 13, digest type 2), DS lagt ind hos
+  Simply.com under cbcit.dk → DNSSEC → "Registry" (Nøgle 1 = DS). NB: Simply
+  viser også en DS for sin egen, ubrugte zone (key tag 30577) — den må ALDRIG
+  bruges, nameserverne er Cloudflares. Rollback: slet DS hos Simply, vent
+  TTL, derefter disable i CF. Ved nameserver-skift: fjern DS FØRST. Lærdom:
+  1.1.1.1 gav SERVFAIL på MX i ~10 min efter DS-publicering (gammel usigneret
+  cache) — gik over af sig selv; tjek med `dns.google/resolve?name=…&type=MX`.
+  Zone-wide indstillinger ændres aldrig uden at tænke på de ~18 andre sites i
+  zonen.
 
 ### 4.4 Mail-DNS — VIGTIGT: to zoner, kun CF'ens gælder udadtil
 
