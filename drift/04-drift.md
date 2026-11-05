@@ -130,8 +130,11 @@ Apt-timere flyttet til 01:00/02:00 (drop-ins), så de ikke kolliderer med Plesks
 06:25-kørsel.
 
 > **Alle alarm-mails går til `johan@cbcit.dk`** (cron, Imunify `ADMIN_CONTACTS`,
-> Plesk-backup, snapshot). Ved overdragelse: skift til en fælles drifts-adresse
-> ét sted ad gangen — listen ovenfor + 07 §10 er den komplette oversigt.
+> Plesk-backup, snapshot, healthchecks.io, UptimeRobot). **Besluttet 2026-11-05
+> (sikkerhedsplan Fase 5 pkt 10): ingen fælles drift@-liste.** Jan har adgang til
+> Johans indbakke og får en opgave om at tjekke den ved Johans fravær. Ved
+> overdragelse: skift adressen ét sted ad gangen — listen ovenfor + 07 §10 er
+> den komplette oversigt.
 
 ---
 
