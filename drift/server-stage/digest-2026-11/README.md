@@ -129,6 +129,22 @@ systemctl disable --now cbc-digest-alert.path
 Imunify-scan tilbage til månedlig: `imunify360-agent config update '{"MALWARE_SCAN_SCHEDULE":{"interval":"month","day_of_month":28,"hour":3}}'`.
 Wordfence: sæt nøglerne i tabellen ovenfor tilbage med `wfConfig::set('<nøgle>', 1)` via `wp eval-file` som sysuser.
 
+## Rettelse 2026-11-06 eftermiddag: afklippede linjer
+
+**Fejl:** I testdigesten var linjer klippet midt i ordet, fx Plesk-linjen i advisory-blokken ("…mellem kon").
+**Årsag:** Hårde byte-grænser med `cut -c` i `cbc-digest.sh`: 160 på advisory-punkter, 500 pr. linje i
+spool-beskeder og 200 på emner. GNU `cut -c` tæller bytes, så den kunne også splitte æøå. Kilden
+(`/var/lib/cbc-advisory/last-report.txt`) var komplet. `ingest.php` klipper ikke tegn, kun linjer (400).
+**Rettelse:**
+- Alle tre `cut -c` er fjernet. Det eneste loft er nu antal linjer pr. besked (`MAXLINES=40`), og det markeres
+  med "… (N linjer mere i archive/…)".
+- Spool-beskeder renderes ikke længere i `<pre>`. Outlook ignorerer `white-space:pre-wrap` og ombryder derfor ikke.
+  Teksten renderes i stedet med `escblock()` (`<br>` + `&nbsp;` for dobbelte mellemrum), `table-layout:fixed`
+  og `word-break:break-word`/`overflow-wrap:anywhere` på bokse, status-rækker og opmærksomheds-blokken.
+- `cbc-notify.sh enc_subject` deler nu emnet i bidder på 12 **tegn** (bash-substring under `LC_ALL=C.UTF-8`)
+  i stedet for 30 **bytes** med `cut`. Ellers kunne et æøå blive splittet på tværs af to RFC 2047-encoded-words.
+- Backup af de tidligere versioner: `/root/cbc-hardening-2026-10/pre-digestfix-20261106/`.
+
 ## Kendte begrænsninger
 
 - Healthchecks-status kan ikke læses uden API-nøgle. Digesten viser kun hvilke checks der pinges.

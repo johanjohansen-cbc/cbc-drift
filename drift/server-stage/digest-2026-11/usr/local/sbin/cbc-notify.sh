@@ -28,12 +28,14 @@ log() { printf '%s [%s] %s\n' "$(ts)" "$JOB" "$*" >> "$LOG" 2>/dev/null; }
 
 BODY=$(cat)
 
-# RFC 2047-indkodning af emnet (aeoeaa i emner), i bidder af 45 bytes saa ingen header-linje bliver for lang
+# RFC 2047-indkodning af emnet (aeoeaa i emner), i bidder af 12 TEGN (<= 48 bytes) saa ingen header-linje bliver for lang.
+# 2026-11-06: tegn-sikker opdeling (bash-substring under UTF-8-locale) i stedet for byte-baseret cut -c, som kunne
+# splitte et aeoeaa paa tvaers af to encoded-words.
 enc_subject() {
-  local s=$1 out="" chunk
+  local s=$1 out="" chunk LC_ALL=C.UTF-8
   if ! printf '%s' "$s" | LC_ALL=C grep -q '[^ -~]'; then printf '%s' "$s"; return; fi
   while [ -n "$s" ]; do
-    chunk=$(printf '%s' "$s" | LC_ALL=C.UTF-8 cut -c1-30)
+    chunk=${s:0:12}
     s=${s:${#chunk}}
     out+="${out:+$'\n '}=?UTF-8?B?$(printf '%s' "$chunk" | base64 -w0)?="
   done

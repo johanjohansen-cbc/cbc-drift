@@ -36,6 +36,10 @@ TEAL='#14798A'; GREEN='#5BAE3A'; AMBER='#C7781A'; GREY='#6B7378'; LINE='#D9DEE1'
 ts()  { date '+%Y-%m-%d %H:%M:%S'; }
 log() { printf '%s [digest] %s\n' "$(ts)" "$*" >> "$LOG"; }
 esc() { printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g'; }
+# 2026-11-06: escape + bevar mellemrum/linjeskift som HTML i stedet for <pre>. Outlook (Word-motoren) ignorerer
+# white-space:pre-wrap paa <pre> og ombryder saa ikke; med <br>/&nbsp; ombrydes lange linjer i alle klienter.
+escblock() { esc "$1" | sed -e ':a' -e 's/  / \&nbsp;/' -e 'ta' -e 's/^ /\&nbsp;/' -e 's/$/<br>/' | tr -d '\n' | sed 's/<br>$//'; }
+WRAP='word-wrap:break-word;word-break:break-word;overflow-wrap:anywhere;'
 
 # Mandag: vent (max 20 min) paa at advisory-watch' ugerapport er spoolet, saa den kommer med i fuld laengde
 DOW=$(date +%u)
@@ -52,7 +56,7 @@ SECTIONS=("Backup" "Opdateringer og patching" "Sikkerhed" "Sites" "Server")
 row() {
   local sec=$1 st=$2 label=$3 txt=$4 badge col
   case "$st" in ok) badge=OK; col=$GREEN;; warn) badge=OBS; col=$AMBER; ATTN+=("$label: $txt");; *) badge=INFO; col=$GREY;; esac
-  SEC_HTML[$sec]+="<tr><td valign=\"top\" style=\"padding:6px 8px 6px 0;width:44px;\"><span style=\"display:inline-block;background-color:$col;color:#ffffff;font-family:Arial,sans-serif;font-size:11px;font-weight:bold;line-height:18px;padding:0 6px;border-radius:3px;\">$badge</span></td><td valign=\"top\" style=\"padding:6px 8px 6px 0;width:150px;font-family:Arial,sans-serif;font-size:14px;color:#1F2A30;font-weight:bold;\">$(esc "$label")</td><td valign=\"top\" style=\"padding:6px 0;font-family:Arial,sans-serif;font-size:14px;line-height:20px;color:#1F2A30;\">$(esc "$txt" | sed 's/$/<br>/' | tr -d '\n' | sed 's/<br>$//')</td></tr>"$'\n'
+  SEC_HTML[$sec]+="<tr><td valign=\"top\" style=\"padding:6px 8px 6px 0;width:44px;\"><span style=\"display:inline-block;background-color:$col;color:#ffffff;font-family:Arial,sans-serif;font-size:11px;font-weight:bold;line-height:18px;padding:0 6px;border-radius:3px;\">$badge</span></td><td valign=\"top\" style=\"padding:6px 8px 6px 0;width:150px;font-family:Arial,sans-serif;font-size:14px;color:#1F2A30;font-weight:bold;\">$(esc "$label")</td><td valign=\"top\" style=\"padding:6px 0;font-family:Arial,sans-serif;font-size:14px;line-height:20px;color:#1F2A30;$WRAP\">$(esc "$txt" | sed 's/$/<br>/' | tr -d '\n' | sed 's/<br>$//')</td></tr>"$'\n'
   SEC_TXT[$sec]+="  [$badge] $label: $txt"$'\n'
 }
 
@@ -69,15 +73,15 @@ job_section() {
 for f in "${FILES[@]}"; do
   b=$(basename "$f" .txt); job=${b#*_}; job=${job%%_[0-9]*}; stamp=${b%%_*}
   when="${stamp:6:2}/${stamp:4:2} ${stamp:9:2}:${stamp:11:2}"
-  subj=$(head -n1 "$f" | cut -c1-200); total=$(( $(wc -l < "$f") - 1 ))
+  # 2026-11-06: ingen tegn-graense pr. linje (cut -c er byte-baseret og klippede tekst + kunne splitte aeoeaa); kun linje-loft
+  subj=$(head -n1 "$f"); total=$(( $(wc -l < "$f") - 1 ))
   lim=$MAXLINES
   [ "$job" = advisory-watch ] && [ "$DOW" = 1 ] && grep -q 'tilstand: weekly' "$f" && lim=100000
-  body=$(tail -n +2 "$f" | head -n "$lim" | cut -c1-500)
+  body=$(tail -n +2 "$f" | head -n "$lim")
   more=""; [ "$total" -gt "$lim" ] && more="... ($((total-lim)) linjer mere i $ARCHIVE/$(date +%F)/$(basename "$f"))"
   sec=$(job_section "$job")
   MSG_N[$sec]=$(( ${MSG_N[$sec]:-0} + 1 ))
-  MSG_HTML[$sec]+="<tr><td style=\"padding:10px 0 4px 0;font-family:Arial,sans-serif;font-size:14px;color:#1F2A30;\"><strong>$(esc "$subj")</strong><br><span style=\"font-size:12px;color:$GREY;\">$(esc "$job") &middot; $(esc "$when")</span></td></tr><tr><td style=\"padding:0 0 8px 0;\"><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\"><tr><td style=\"background-color:#F2F4F5;border:1px solid $LINE;padding:10px;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:16px;color:#1F2A30;\"><pre style=\"margin:0;white-space:pre-wrap;word-wrap:break-word;font-family:Consolas,'Courier New',monospace;font-size:12px;\">$(esc "$body")${more:+
-$(esc "$more")}</pre></td></tr></table></td></tr>"$'\n'
+  MSG_HTML[$sec]+="<tr><td style=\"padding:10px 0 4px 0;font-family:Arial,sans-serif;font-size:14px;color:#1F2A30;\"><strong>$(esc "$subj")</strong><br><span style=\"font-size:12px;color:$GREY;\">$(esc "$job") &middot; $(esc "$when")</span></td></tr><tr><td style=\"padding:0 0 8px 0;\"><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"table-layout:fixed;\"><tr><td style=\"background-color:#F2F4F5;border:1px solid $LINE;padding:10px;font-family:Consolas,'Courier New',monospace;font-size:12px;line-height:16px;color:#1F2A30;$WRAP\">$(escblock "$body${more:+${NL}$more}")</td></tr></table></td></tr>"$'\n'
   MSG_TXT[$sec]+="--- $subj  ($job, $when)${NL}$(printf '%s\n' "$body" | sed 's/^/    /')${NL}${more:+    $more${NL}}"
 done
 
@@ -96,7 +100,7 @@ AR=/var/lib/cbc-advisory/last-report.txt
 if [ -r "$AR" ]; then
   arage=$(( ($(date +%s) - $(stat -c %Y "$AR")) / 3600 ))
   na=$(grep -c '^  \* ' "$AR" || true); nsec=$(grep '^  \* ' "$AR" | grep -c 'SIKKERHED?' || true)
-  items=$(grep '^  \* ' "$AR" | sed -E 's/^  \* //; s/  ->  .*$//; s/\[SIKKERHED\? .*\]/[SIKKERHED?]/' | cut -c1-160 | sed 's/^/- /')
+  items=$(grep '^  \* ' "$AR" | sed -E 's/^  \* //; s/  ->  .*$//; s/\[SIKKERHED\? .*\]/[SIKKERHED?]/' | sed 's/^/- /')
   if [ "$nsec" -gt 0 ]; then row "Opdateringer og patching" warn "Advisory-watch" "$nsec sikkerhedsmarkerede af $na afvigelser (rapport ${arage} t gammel):"$'\n'"$items"
   elif [ "$na" -gt 0 ]; then row "Opdateringer og patching" info "Advisory-watch" "$na afvigelser uden sikkerhedsflag (rapport ${arage} t gammel):"$'\n'"$items"
   else row "Opdateringer og patching" ok "Advisory-watch" "Ingen afvigelser (rapport ${arage} t gammel)"; fi
@@ -229,7 +233,7 @@ cat <<EOH
 EOH
 if [ "$NATT" -gt 0 ]; then
   printf '<tr><td style="padding:14px 28px 0 28px;"><table role="presentation" width="100%%" cellpadding="0" cellspacing="0" border="0" style="border-left:4px solid %s;background-color:#FBF4EC;">\n' "$AMBER"
-  for a in "${ATTN[@]}"; do printf '<tr><td style="padding:6px 12px;font-family:Arial,sans-serif;font-size:14px;line-height:20px;color:#1F2A30;">%s</td></tr>\n' "$(esc "$a" | sed 's/$/<br>/' | tr -d '\n' | sed 's/<br>$//')"; done
+  for a in "${ATTN[@]}"; do printf '<tr><td style="padding:6px 12px;font-family:Arial,sans-serif;font-size:14px;line-height:20px;color:#1F2A30;'"$WRAP"'">%s</td></tr>\n' "$(esc "$a" | sed 's/$/<br>/' | tr -d '\n' | sed 's/<br>$//')"; done
   printf '</table></td></tr>\n'
 fi
 for sec in "${SECTIONS[@]}"; do
