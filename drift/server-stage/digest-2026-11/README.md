@@ -39,7 +39,7 @@ Derfor går alarmer fra aliaset via outbox og en root-service. Kontrollen er bev
 | `/var/spool/cbc-digest/` | 0710 root:nogroup | `inbox/` + `outbox/` 1730 root:nogroup (nobody kan oprette, ikke læse/slette), `archive/` 0700 |
 | `/etc/aliases` | +1 linje | `digest: "|/usr/local/sbin/cbc-digest-ingest.sh"` |
 | `/etc/postfix/main.cf` | ændret | `mydestination` += `server.cbcit.dk` |
-| `/etc/cbc-healthchecks.conf` | +1 kommentar | `# digest=` TODO (Johan opretter checket) |
+| `/etc/cbc-healthchecks.conf` | +1 linje | `digest=<ping-URL>` (aktiv 2026-11-06; backup `.pre-digest`) |
 
 **Ændrede scripts** (kun send-funktionen; diff mod `/root/cbc-hardening-2026-10/pre-digest-20261106/`):
 
