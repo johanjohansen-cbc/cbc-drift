@@ -1,0 +1,10 @@
+# CBC 2026-11-06: send alarmer fra digest-ingest straks (nobody maa ikke sende mail selv - Plesk limit-out).
+[Unit]
+Description=CBC digest: send alarmer fra /var/spool/cbc-digest/outbox
+
+[Path]
+DirectoryNotEmpty=/var/spool/cbc-digest/outbox
+MakeDirectory=no
+
+[Install]
+WantedBy=paths.target

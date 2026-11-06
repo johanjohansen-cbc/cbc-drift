@@ -1,0 +1,5 @@
+# CBC 2026-11-06: daglig driftsdigest til johan@cbcit.dk kl. 07:30 (efter integrity 05:17, Plesk 06:25, backup-check 06:40,
+# egress 06:55, advisory 07:15). Samler /var/spool/cbc-digest + live-status i EN mail. Rollback: touch /etc/cbc-digest.disabled
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+30 7 * * * root /usr/local/sbin/cbc-digest.sh >> /var/log/cbc-digest.log 2>&1

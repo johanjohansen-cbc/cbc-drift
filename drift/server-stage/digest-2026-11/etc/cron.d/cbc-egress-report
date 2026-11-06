@@ -1,0 +1,3 @@
+# CBC blast-radius 2026-10-22: daglig opsummering af web-egress-hits til johan@cbcit.dk (via Postfix->Brevo).
+SHELL=/bin/bash
+55 6 * * * root /usr/local/sbin/cbc-egress-report.sh >/dev/null 2>&1; /usr/local/sbin/cbc-hc-ping.sh egress $? >> /var/log/cbc-hc-ping.log 2>&1

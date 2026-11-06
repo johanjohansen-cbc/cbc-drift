@@ -1,0 +1,29 @@
+# CBC daglig digest 2026-11-06: alarm-moenstre for mails til digest@server.cbcit.dk.
+# Matcher EMNET (ikke body), store/smaa bogstaver ligegyldigt, PCRE (PHP preg, flag iu). Et moenster pr. linje.
+# Match -> mailen sendes STRAKS til johan@cbcit.dk som "[CBC ALARM] <emne>" (og kommer ogsaa med i naeste digest).
+# Ingen match -> kun i den daglige digest kl. 07:30.  Aendringer virker med det samme (filen laeses pr. mail).
+fail
+error
+malware
+infected
+critical
+quarant
+\bdown\b
+unable
+# Danske emner (WordPress/Plesk paa dansk)
+fejl
+mislykk
+kritisk
+kunne ikke
+teknisk problem
+\bnede\b
+inficer
+karant
+# WordPress persondata-anmodninger (GDPR-frist) skal ses straks
+anmodning
+data request
+action required
+handling påkrævet
+# Plesk-backup m.fl.: advarsler skal ogsaa ses straks
+warning
+advarsel

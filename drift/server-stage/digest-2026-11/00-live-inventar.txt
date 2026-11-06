@@ -1,0 +1,772 @@
+CBC mail-inventar — server.cbcit.dk — 2026-11-06T11:24:27+01:00
+
+
+######## 1. Cron/timers
+
+$ cat /etc/cron.d/cbc-*
+# CBC 2026-10-23: advisory-overvaagning (PHP/WordPress/plugins/Plesk) -> johan@cbcit.dk.
+# check = dagligt 07:15 (ikke mandag), mail KUN ved afvigelse. weekly = mandag 07:30, "alt OK"-status ALTID.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+15 7 * * 0,2-6 root /usr/local/sbin/cbc-advisory-watch.sh check >/dev/null 2>&1
+30 7 * * 1     root /usr/local/sbin/cbc-advisory-watch.sh weekly >/dev/null 2>&1
+# CBC dead-man-ping 2026-11-04: tjek at nattens Plesk-backup er frisk+OK og meld til healthchecks.io (/etc/cbc-healthchecks.conf).
+SHELL=/bin/bash
+40 6 * * * root /usr/local/sbin/cbc-backup-check.sh >/dev/null 2>&1
+# CBC blast-radius 2026-10-22: daglig opsummering af web-egress-hits til johan@cbcit.dk (via Postfix->Brevo).
+SHELL=/bin/bash
+55 6 * * * root /usr/local/sbin/cbc-egress-report.sh >/dev/null 2>&1; /usr/local/sbin/cbc-hc-ping.sh egress $?
+# CBC blast-radius 2026-10-22: daglig opsummering af web-egress-hits til johan@cbcit.dk (via Postfix->Brevo).
+SHELL=/bin/bash
+55 6 * * * root /usr/local/sbin/cbc-egress-report.sh >/dev/null 2>&1
+# CBC 2026-10-23: sikkerhedsopdateringer hver 4. time: Plesk-PHP (plesk-php8*) + Ubuntu-security (unattended-upgrade).
+# Supplerer Plesks natkoersel (50plesk-daily ~06:25) og apt-daily-upgrade (~02:10) - tidspunkterne undgaar begge.
+# Mailer johan@cbcit.dk KUN naar noget blev opgraderet (eller ved fejl). Log: /var/log/cbc-security-updates.log
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+45 0,4,8,12,16,20 * * * root /usr/local/sbin/cbc-security-updates.sh >/dev/null 2>&1
+# CBC 2026-10-21: ordre-velocity-overvaagning cbcit.dk (card-testing). Mailer johan@cbcit.dk ved >5 ordrer/time.
+SHELL=/bin/bash
+7 * * * * root /usr/local/sbin/cbc-woo-order-watch.sh
+
+$ systemctl list-timers --all --no-pager | grep -E "cbc-|apt|plesk|imunify|certbot|fstrim|e2scrub"
+Fri 2026-11-06 11:47:25 CET         22min Fri 2026-11-06 10:46:58 CET    37min ago cbc-web-egress-refresh.timer   cbc-web-egress-refresh.service
+Sat 2026-11-07 01:01:01 CET           13h Fri 2026-11-06 01:14:30 CET      10h ago apt-daily.timer                apt-daily.service
+Sat 2026-11-07 02:29:13 CET           15h Fri 2026-11-06 02:28:41 CET       8h ago apt-daily-upgrade.timer        apt-daily-upgrade.service
+Sat 2026-11-07 05:17:37 CET           17h Fri 2026-11-06 05:16:36 CET       6h ago cbc-wp-integrity.timer         cbc-wp-integrity.service
+Sun 2026-11-08 03:10:53 CET     1 day 15h Sun 2026-11-01 03:10:58 CET   5 days ago e2scrub_all.timer              e2scrub_all.service
+Sun 2026-11-08 04:36:46 CET     1 day 17h Sun 2026-11-01 04:39:02 CET   5 days ago cbc-fw-refresh.timer           cbc-fw-refresh.service
+Sun 2026-11-08 04:57:09 CET     1 day 17h Sun 2026-11-01 04:54:46 CET   5 days ago cbc-web-egress-ranges.timer    cbc-web-egress-ranges.service
+Mon 2026-11-09 00:45:32 CET        2 days Mon 2026-11-02 00:01:59 CET   4 days ago fstrim.timer                   fstrim.service
+
+$ ls -1 /etc/cron.d /etc/cron.daily /etc/cron.weekly /etc/cron.hourly
+/etc/cron.d:
+cbc-advisory-watch
+cbc-backup-check
+cbc-egress-report
+cbc-egress-report.pre-hc-20261104
+cbc-security-updates
+cbc-woo-order-watch
+e2scrub_all
+imunify-antivirus
+imunify-core
+imunify-manual-handler
+imunify-notifier
+imunify-notifier-timed-trigger
+plesk-backup-manager-task
+plesk-outgoing-mail-statistics-poller
+sysstat
+
+/etc/cron.daily:
+50plesk-daily
+apache2
+apport
+apt-compat
+dmarc-report
+dpkg
+imunify-antivirus
+logrotate
+man-db
+plesk-rrd-cleaner
+sysstat
+webalizer
+
+/etc/cron.hourly:
+50plesk-hourly
+plesk-php-cleanuper
+
+/etc/cron.weekly:
+50plesk-weekly
+fail2ban-vacuum
+man-db
+plesk-remove-temp-backups
+
+$ cat /etc/crontab
+# /etc/crontab: system-wide crontab
+# Unlike any other crontab you don't have to run the `crontab'
+# command to install the new version when you edit this file
+# and files in /etc/cron.d. These files also have username fields,
+# that none of the other crontabs do.
+
+SHELL=/bin/sh
+# You can also override PATH, but by default, newer versions inherit it from the environment
+#PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Example of job definition:
+# .---------------- minute (0 - 59)
+# |  .------------- hour (0 - 23)
+# |  |  .---------- day of month (1 - 31)
+# |  |  |  .------- month (1 - 12) OR jan,feb,mar,apr ...
+# |  |  |  |  .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat
+# |  |  |  |  |
+# *  *  *  *  * user-name command to be executed
+17 *	* * *	root	cd / && run-parts --report /etc/cron.hourly
+25 6	* * *	root	test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.daily; }
+47 6	* * 7	root	test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.weekly; }
+52 6	1 * *	root	test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.monthly; }
+#
+
+$ crontab -l -u root
+no crontab for root
+
+$ crontab -l -u psaadm
+MAILTO=""
+#@desc: Extension catalog
+51	10	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/catalog/scripts/update-index.php'
+#@desc: Extension notifier
+43	10	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/notifier/scripts/check-compatible-tls.php'
+#@desc: Extension notifier
+23	4	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/notifier/scripts/check-mail-ports.php'
+#@desc: Extension galileo
+3	23	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/galileo/scripts/webstat-parse.php'
+#@desc: Extension galileo
+44	*	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/galileo/scripts/galileo-every-hour.php'
+#@desc: Extension platform360
+0	4	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/platform360/scripts/check-secret-key.php'
+#@desc: Extension platform360
+26	3	*	*	5	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/platform360/scripts/check-plesk-version.php'
+#@desc: Extension wp-toolkit
+12	*	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/wp-toolkit/scripts/maintenance.php'
+#@desc: Extension wp-toolkit
+16	1	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/wp-toolkit/scripts/instances-auto-update.php'
+#@desc: Extension wp-toolkit
+24	1	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/wp-toolkit/scripts/instances-scan.php'
+#@desc: Extension advisor
+47	16	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/advisor/scripts/update-config.php'
+#@desc: Extension sslit
+13	*	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/sslit/scripts/keep-secured.php'
+#@desc: Extension sslit
+47	*	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/sslit/scripts/complete-order.php'
+#@desc: Extension sslit
+12	6	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/sslit/scripts/reissue-order.php'
+#@desc: Extension sslit
+22	*	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/sslit/scripts/panel-notifications.php'
+#@desc: Extension letsencrypt
+MAILFROM="cron@server.cbcit.dk"
+#@desc: Extension monitoring
+20	*	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/monitoring/scripts/detect-hardware-changes.php'
+#@desc: Extension monitoring
+4,14,24,34,44,54	*	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/monitoring/scripts/cloud-alerts.php'
+#@desc: Extension monitoring
+28	6	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/monitoring/scripts/update-agent-version.php'
+#@desc: Extension log-browser
+37	*	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/log-browser/scripts/parse-logs.php'
+#@desc: Extension log-browser
+20	1	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/log-browser/scripts/rotate-mail.php'
+#@desc: Extension sectigo
+#@desc: Extension advisor
+0	0	*	*	*	/opt/psa/admin/bin/php -dauto_prepend_file=sdk.php '/opt/psa/admin/plib/modules/advisor/scripts/update-cache.php'
+
+$ crontab -l -u event.cbcit.dk_x3pjx5okzbn
+*/5 * * * * /opt/plesk/php/8.4/bin/php -d memory_limit=512M /usr/local/bin/wp --path=/var/www/vhosts/event.cbcit.dk/httpdocs cron event run --due-now >/dev/null 2>&1
+# CBC ugentligt WP-update-tjek (notify-only, mandag 07:30 UTC)
+30 7 * * 1 /opt/plesk/php/8.4/bin/php -d memory_limit=512M /usr/local/bin/wp --path=/var/www/vhosts/event.cbcit.dk/httpdocs eval-file /var/www/vhosts/event.cbcit.dk/cbc-update-notify.php >/dev/null 2>&1
+
+$ crontab -l -u cbcitdk
+*/5 * * * * /opt/plesk/php/8.4/bin/php -d memory_limit=512M /usr/local/bin/wp --path=/var/www/vhosts/cbcit.dk/httpdocs cron event run --due-now >/dev/null 2>&1
+
+$ crontab -l -u datagaardendk
+*/5 * * * * /opt/plesk/php/8.4/bin/php -d memory_limit=512M /usr/local/bin/wp --path=/var/www/vhosts/datagaarden.dk/httpdocs cron event run --due-now >/dev/null 2>&1
+
+$ grep -rn MAILTO /etc/crontab /etc/cron.d/ /var/spool/cron/crontabs/ 2>/dev/null
+/etc/cron.d/imunify-notifier-timed-trigger:3:MAILTO=""
+/etc/cron.d/imunify-notifier:3:MAILTO=""
+/var/spool/cron/crontabs/psaadm:4:MAILTO=""
+
+
+######## 2. Mail-afsendere i egne scripts
+
+$ grep -lE "sendmail|mail -s|mailx|cbc-notify" /usr/local/sbin/*.sh /usr/local/bin/*.sh /etc/cron.daily/* /etc/cron.weekly/* 2>/dev/null
+/usr/local/sbin/cbc-advisory-watch.sh
+/usr/local/sbin/cbc-egress-report.sh
+/usr/local/sbin/cbc-fw-refresh.sh
+/usr/local/sbin/cbc-security-updates.sh
+/usr/local/sbin/cbc-web-egress-ranges-fetch.sh
+/usr/local/sbin/cbc-woo-order-watch.sh
+/usr/local/sbin/cbc-wp-integrity.sh
+
+$ grep -nE 'TO=|ALERT=|FROM=|Subject|sendmail|mail -s' /usr/local/sbin/cbc-advisory-watch.sh
+18:# Mail: johan@cbcit.dk via /usr/sbin/sendmail (Postfix -> Brevo). Log: /var/log/cbc-advisory-watch.log
+24:TO="${TO:-johan@cbcit.dk}"
+25:FROM="cbc-advisory-watch@server.cbcit.dk"
+67:    HOWTO="Plesk-repoet HAR $PHP_CAND -> koer nu:  /usr/local/sbin/cbc-security-updates.sh   (eller: apt-get update && apt-get install --only-upgrade 'plesk-php84-*')"
+69:    HOWTO="Plesk-repoet har endnu kun ${PHP_CAND:-?} (apt-lister fra $APT_STAMP). Plesk pakker typisk inden for timer-1 doegn; cbc-security-updates.sh henter den automatisk inden 4 t derefter. Tjek manuelt: apt-get update && apt-cache policy plesk-php84"
+197:send() { { printf 'To: %s\nFrom: %s\nSubject: %s\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\n\n' "$TO" "$FROM" "$1"; printf '%s\n' "$REPORT"; } | /usr/sbin/sendmail -t; log "mail sendt: $1"; }
+
+$ grep -nE 'TO=|ALERT=|FROM=|Subject|sendmail|mail -s' /usr/local/sbin/cbc-egress-report.sh
+6:TO=johan@cbcit.dk
+24:  AGG=$(printf '%s\n' "$RAW" | sed -nE 's/^([0-9T:+-]+) .*DST=([0-9a-f.:]+) .*PROTO=([A-Z0-9]+) .*DPT=([0-9]+) .*UID=([0-9]+) .*/\5 \2 \3 \4 \1/p')
+50:printf 'To: %s\nSubject: [CBC] web-egress-rapport (%s): %s hits\nContent-Type: text/plain; charset=UTF-8\n\n%s\n' "$TO" "${MODE:-?}" "$N" "$BODY" | /usr/sbin/sendmail -t
+
+$ grep -nE 'TO=|ALERT=|FROM=|Subject|sendmail|mail -s' /usr/local/sbin/cbc-fw-refresh.sh
+13:ALERT=johan@cbcit.dk
+20:  [ -x /usr/sbin/sendmail ] || return 0
+21:  printf 'To: %s\nSubject: %s\nContent-Type: text/plain; charset=UTF-8\n\n%s\n' \
+22:    "$ALERT" "$1" "$2" | /usr/sbin/sendmail -t 2>/dev/null || true
+
+$ grep -nE 'TO=|ALERT=|FROM=|Subject|sendmail|mail -s' /usr/local/sbin/cbc-security-updates.sh
+28:TO="${TO:-johan@cbcit.dk}"
+29:FROM="cbc-security-updates@server.cbcit.dk"
+40:  { printf 'To: %s\nFrom: %s\nSubject: %s\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\n\n' "$TO" "$FROM" "$1"; cat; } | /usr/sbin/sendmail -t
+
+$ grep -nE 'TO=|ALERT=|FROM=|Subject|sendmail|mail -s' /usr/local/sbin/cbc-web-egress-ranges-fetch.sh
+10:ALERT=johan@cbcit.dk
+15:notify(){ [ -x /usr/sbin/sendmail ] || return 0
+16:  printf 'To: %s\nSubject: %s\nContent-Type: text/plain; charset=UTF-8\n\n%s\n' "$ALERT" "$1" "$2" | /usr/sbin/sendmail -t 2>/dev/null || true; }
+
+$ grep -nE 'TO=|ALERT=|FROM=|Subject|sendmail|mail -s' /usr/local/sbin/cbc-woo-order-watch.sh
+7:TO="${TO:-johan@cbcit.dk}"
+21:/usr/sbin/sendmail -t <<EOF
+24:Subject: [cbcit.dk] $COUNT ordrer oprettet den seneste time (loft $THRESHOLD)
+
+$ grep -nE 'TO=|ALERT=|FROM=|Subject|sendmail|mail -s' /usr/local/sbin/cbc-wp-integrity.sh
+12:MAILTO="johan@cbcit.dk"
+13:MAILFROM="noreply@cbcit.dk"
+18:ALERT=0       # 1 = checksum-afvigelse/fejl -> ADVARSEL-subjekt
+42:    ALERT=1; NOTEWORTHY=1
+55:    ALERT=1; NOTEWORTHY=1
+59:    ALERT=1; NOTEWORTHY=1
+103:    echo "Subject: $SUBJ"
+111:  } | /usr/sbin/sendmail -t
+
+$ ls -la /var/lib/cbc-advisory /var/spool/cbc-* /var/log/cbc-* 2>/dev/null
+-rw-r----- 1 root root  2689 Nov  6 07:15 /var/log/cbc-advisory-watch.log
+-rw-r----- 1 root root  3048 Oct 31 07:15 /var/log/cbc-advisory-watch.log.1
+-rw-r----- 1 root root   313 Oct 24 07:15 /var/log/cbc-advisory-watch.log.2.gz
+-rw-r--r-- 1 root root  1129 Nov  1 04:39 /var/log/cbc-fw-refresh.log
+-rw-r----- 1 root root 31707 Nov  6 08:45 /var/log/cbc-security-updates.log
+-rw-r----- 1 root root 38538 Oct 31 20:45 /var/log/cbc-security-updates.log.1
+-rw-r----- 1 root root  1336 Oct 24 20:45 /var/log/cbc-security-updates.log.2.gz
+-rw-r--r-- 1 root root 44962 Nov  6 10:47 /var/log/cbc-web-egress-refresh.log
+-rw-r--r-- 1 root root   776 Nov  6 05:17 /var/log/cbc-wp-integrity-last.txt
+-rw-r--r-- 1 root root  1376 Nov  6 05:17 /var/log/cbc-wp-integrity.log
+
+/var/lib/cbc-advisory:
+total 16
+drwxr-xr-x  2 root root 4096 Nov  6 07:15 .
+drwxr-xr-x 61 root root 4096 Oct 25 06:33 ..
+-rw-r--r--  1 root root 3988 Nov  6 07:15 last-report.txt
+-rw-r--r--  1 root root  218 Nov  6 07:15 reported-plugins.txt
+
+$ cat /etc/cron.daily/dmarc-report 2>/dev/null
+#!/bin/bash
+### Copyright 1999-2026. WebPros International GmbH. All rights reserved.
+
+/usr/lib/plesk-9.0/dmarc_aggregate_report
+
+$ ls /etc/logwatch 2>/dev/null; dpkg -l | grep -E "logwatch|opendmarc|mailutils|bsd-mailx|s-nail" | awk "{print \$2, \$3}"
+s-nail 14.9.24-2build2
+
+
+######## 3. Postfix
+
+$ postconf -n
+alias_database = hash:/etc/aliases
+alias_maps = hash:/etc/aliases, hash:/var/spool/postfix/plesk/aliases
+append_dot_mydomain = no
+authorized_flush_users =
+authorized_mailq_users =
+biff = no
+compatibility_level = 3.6
+disable_vrfy_command = yes
+inet_interfaces = loopback-only
+inet_protocols = all
+mailbox_size_limit = 0
+mailman_destination_recipient_limit = 1
+message_size_limit = 10240000
+mydestination = localhost.cbcit.dk, localhost, localhost.localdomain
+myhostname = server.cbcit.dk
+mynetworks =
+myorigin = /etc/mailname
+plesk_virtual_destination_recipient_limit = 1
+readme_directory = no
+recipient_canonical_classes = envelope_recipient,header_recipient
+recipient_canonical_maps = tcp:127.0.0.1:12346
+recipient_delimiter = +
+relayhost = [smtp-relay.brevo.com]:587
+sender_canonical_maps = regexp:/etc/postfix/sender_canonical
+sender_dependent_default_transport_maps = hash:/var/spool/postfix/plesk/sdd_transport_maps
+smtp_send_xforward_command = yes
+smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+smtp_tls_CApath = /etc/ssl/certs
+smtp_tls_security_level = encrypt
+smtp_tls_session_cache_database = btree:${data_directory}/smtp_scache
+smtpd_authorized_xforward_hosts = 127.0.0.0/8 [::1]/128
+smtpd_banner = $myhostname ESMTP $mail_name (Ubuntu)
+smtpd_forbid_bare_newline = yes
+smtpd_forbid_bare_newline_exclusions = $mynetworks
+smtpd_milters = , inet:127.0.0.1:12768
+smtpd_tls_cert_file = /etc/postfix/postfix.pem
+smtpd_tls_ciphers = medium
+smtpd_tls_dh1024_param_file = /opt/psa/etc/dhparams2048.pem
+smtpd_tls_key_file = $smtpd_tls_cert_file
+smtpd_tls_mandatory_ciphers = medium
+smtpd_tls_mandatory_protocols = TLSv1.2 TLSv1.3
+smtpd_tls_protocols = TLSv1.2 TLSv1.3
+smtpd_tls_security_level = may
+smtputf8_enable = no
+tls_medium_cipherlist = EECDH+AESGCM:EECDH+AESCCM:EECDH+CHACHA20:EECDH+ARIAGCM
+tls_preempt_cipherlist = no
+tls_server_sni_maps = hash:/var/spool/postfix/plesk/certs
+transport_maps = , hash:/var/spool/postfix/plesk/transport
+virtual_alias_maps = $virtual_maps, hash:/var/spool/postfix/plesk/virtual
+virtual_gid_maps = static:31
+virtual_mailbox_base = /var/qmail/mailnames
+virtual_mailbox_domains = $virtual_mailbox_maps, hash:/var/spool/postfix/plesk/virtual_domains
+virtual_mailbox_limit = 0
+virtual_mailbox_maps = , hash:/var/spool/postfix/plesk/vmailbox
+virtual_transport = plesk_virtual
+virtual_uid_maps = static:30
+
+$ postconf -h myorigin mydestination inet_interfaces
+/etc/mailname
+localhost.cbcit.dk, localhost, localhost.localdomain
+loopback-only
+
+$ cat /etc/aliases
+# See man 5 aliases for format
+postmaster:    root
+
+$ ls -la /etc/postfix/
+total 164
+drwxr-xr-x   5 root root  4096 Jul 10 09:11 .
+drwxr-xr-x 137 root root 12288 Nov  6 08:45 ..
+-rw-r--r--   1 root root    60 Jun  1 15:41 dynamicmaps.cf
+drwxr-xr-x   2 root root  4096 May  5  2026 dynamicmaps.cf.d
+-rw-r--r--   1 root root  3388 Jun  5 14:39 main.cf
+-rw-r--r--   1 root root  3378 Jun  5 14:39 main.cf.pre-cbc
+-rw-r--r--   1 root root 27460 Jun  1 15:41 main.cf.proto
+lrwxrwxrwx   1 root root    31 Jun  1 15:41 makedefs.out -> /usr/share/postfix/makedefs.out
+-rw-r--r--   1 root root  7672 Jul 10 09:11 master.cf
+-rw-r--r--   1 root root  7048 Jun  1 15:41 master.cf.proto
+-rw-------   1 root root  2971 Jun  1 15:41 postfix_default.pem
+-rw-r--r--   1 root root 10283 May  5  2026 postfix-files
+drwxr-xr-x   2 root root  4096 May  5  2026 postfix-files.d
+-rw-------   1 root root  2971 Jun  1 15:51 postfix.pem
+-rwxr-xr-x   1 root root 11033 May  5  2026 postfix-script
+-rwxr-xr-x   1 root root 29873 May  5  2026 post-install
+-rw-r--r--   1 root root    49 Jun  2 10:49 sender_canonical
+
+$ ls -la /var/log/mail.log* /var/log/maillog* 2>/dev/null
+-rw-r----- 1 syslog adm     5888 Nov  6 08:45 /var/log/maillog
+-rw-r----- 1 root   root 6442226 Nov  6 06:37 /var/log/maillog.processed
+
+$ zgrep -hE "to=<johan@cbcit.dk>" /var/log/mail.log* 2>/dev/null | grep -oE "from=<[^>]*>" | sort | uniq -c | sort -rn
+
+$ zgrep -hE "to=<johan@cbcit.dk>" /var/log/mail.log* 2>/dev/null | wc -l; zgrep -hE "to=<johan@cbcit.dk>" /var/log/mail.log* 2>/dev/null | awk "{print \$1}" | cut -c1-10 | sort | uniq -c | tail -30
+0
+
+$ zgrep -hE "to=<[^>]*>" /var/log/mail.log* 2>/dev/null | grep -oE "to=<[^>]*>" | sort | uniq -c | sort -rn | head -20
+
+$ grep -hE "mail sendt|Subject" /var/log/cbc-*.log 2>/dev/null | sed -E "s/[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9:+]+//" | sort | uniq -c | sort -rn
+      2  mail sendt: [server.cbcit.dk] Advisory: 5 afvigelse(r) - PHP/WordPress/plugins/Plesk
+      2  mail sendt: [server.cbcit.dk] Advisory: 4 afvigelse(r) - PHP/WordPress/plugins/Plesk
+      1  mail sendt til johan@cbcit.dk: [server.cbcit.dk] Sikkerhedsopdateringer installeret: 8 pakke(r) (PHP: nej)
+      1  mail sendt til johan@cbcit.dk: [server.cbcit.dk] Sikkerhedsopdateringer installeret: 1 pakke(r) (PHP: nej)
+      1  mail sendt til johan@cbcit.dk: [server.cbcit.dk] Sikkerhedsopdateringer installeret: 11 pakke(r) (PHP: nej)
+      1  mail sendt: [server.cbcit.dk] Ugentlig status: 3 afvigelse(r) kraever handling
+      1  mail sendt: [server.cbcit.dk] Advisory: 3 afvigelse(r) - PHP/WordPress/plugins/Plesk
+
+
+######## 4. Plesk-notifikationer
+
+$ plesk db "SHOW TABLES LIKE \"%otif%\""
++-----------------------------------+
+| Tables_in_psa (%otif%)            |
++-----------------------------------+
+| Notifications                     |
+| PackageUpdateNotifications        |
+| PanelNotificationMessages         |
+| PanelNotificationTemplateSettings |
++-----------------------------------+
+
+$ plesk db "SELECT * FROM Notifications" 2>/dev/null
+
+$ plesk db "SELECT last, period, rotation, remoteStorage, email, suspend FROM BackupsScheduled\G"
+*************************** 1. row ***************************
+         last: 2026-11-06 00:13:13
+       period: 86400
+     rotation: 30
+remoteStorage: one-drive-backup
+        email: johan@cbcit.dk
+      suspend: false
+
+$ plesk bin admin --info 2>/dev/null | grep -iE "mail|email"
+email: johan@cbcit.dk
+
+$ plesk bin server_pref --show 2>/dev/null | grep -iE "mail|notif|report"
+include-mailboxes:	true
+include-maillists:	true
+autoupdates-email-notification:	johan@cbcit.dk
+
+$ grep -rlE "johan@cbcit.dk" /etc/psa /opt/psa/admin/conf /usr/local/psa/admin/conf /etc/sw /opt/psa/var/modules 2>/dev/null
+/opt/psa/var/modules/log-browser/log-browser.sqlite3
+/opt/psa/var/modules/sslit/sslit.sqlite3
+/opt/psa/var/modules/one-drive-backup/settings.sqlite3
+
+$ plesk ext --list 2>/dev/null
+
+$ plesk db "SELECT name,value FROM misc WHERE name LIKE \"%mail%\" OR name LIKE \"%notif%\" OR name LIKE \"%report%\" OR name LIKE \"%health%\""
+--------------
+SELECT name,value FROM misc WHERE name LIKE "%mail%" OR name LIKE "%notif%" OR name LIKE "%report%" OR name LIKE "%health%"
+--------------
+
+ERROR 1054 (42S22) at line 1: Unknown column 'name' in 'SELECT'
+exit status 1
+
+
+######## 5. Imunify360
+
+$ imunify360-agent config show 2>/dev/null | grep -iE -A8 "ADMIN_CONTACTS|NOTIFICATIONS|MALWARE_SCAN_SCHEDULE|ERROR_REPORTING|ADMIN_NOTIF"
+{"BACKUP_RESTORE": {"max_days_in_backup": 90, "cl_backup_allowed": true, "cl_on_premise_backup_allowed": false}, "MALWARE_CLEANUP": {"trim_file_instead_of_removal": true, "keep_original_files_days": 14, "stop_process_on_cleanup": null}, "MALWARE_SCANNING": {"try_restore_from_backup_first": false, "default_action": "cleanup", "notify_on_detect": true, "enable_scan_inotify": true, "optimize_realtime_scan": true, "enable_scan_modsec": true, "sends_file_for_analysis": false, "enable_scan_pure_ftpd": true, "cloud_assisted_scan": true, "rapid_scan": true, "max_signature_size_to_scan": 1048576, "max_cloudscan_size_to_scan": 104857600, "max_mrs_upload_file": 104857600, "max_targets_per_scan_type": 100000, "max_path_len": 4096, "detect_elf": true, "hyperscan": true, "enable_scan_cpanel": true, "crontabs": true, "detect_admin_tools": true, "prioritize_user_on_demand_scans": false, "parallel_scans_limit": 1, "scan_modified_files": null, "rapid_scan_rescan_unchanging_files_frequency": null}, "MALWARE_SCAN_SCHEDULE": {"interval": "month", "hour": 3, "day_of_week": 0, "day_of_month": 28}, "MALWARE_SCAN_INTENSITY": {"cpu": 2, "io": 2, "ram": 2048, "user_scan_cpu": 2, "user_scan_io": 2, "user_scan_ram": 1024, "resident_ram": 2048, "io_pacing": "auto", "io_pacing_threshold": 85}, "MALWARE_DATABASE_SCAN": {"enable": true, "db_timeout": 15}, "RESOURCE_MANAGEMENT": {"cpu_limit": 2, "io_limit": 2, "ram_limit": 500}, "ERROR_REPORTING": {"enable": true}, "SEND_ADDITIONAL_DATA": {"enable": true}, "ADMIN_CONTACTS": {"emails": ["johan@cbcit.dk"], "enable_icontact_notifications": true}, "PATCHMAN": {"enable": false}, "PERMISSIONS": {"support_form": true, "advisor": true, "user_ignore_list": false, "upgrade_button": true, "allow_malware_scan": false, "user_override_malware_actions": false, "user_override_proactive_defense": false, "allow_local_malware_ignore_list_management": true, "use_plesk_service_plan": true, "allow_wp_waf_rules_management": true}, "LOGGER": {"max_log_file_size": 62914560, "backup_count": 5, "syscall_monitor": true}, "MY_IMUNIFY": {"enable": false, "purchase_page_url": "https://{{ your billing system host }}:?{{ port }}/"}, "CONTROL_PANEL": {"generic_user_notifications": true}, "WORDPRESS": {"security_plugin_enabled": false, "waf_enabled": true, "waf_default": true, "ai_bot_protection": false, "ai_bot_protection_preset": "balanced", "ai_bot_protection_default": null}, "DASHBOARD": {"notifications": {"insecure_wp_core": true, "outdated_wp_core": true, "scan_not_scheduled": true, "malware_found": true, "malicious_redirect_detected": true, "malware_detected": true, "aibolit_vulnerable": true, "wordpress_themes_and_plugins": true}}, "PROACTIVE_DEFENCE": {"php_immunity": true}, "WEBSHIELD": {"splash_screen": true}, "PAM": {"exim_dovecot_native": true}, "MOD_SEC_BLOCK_BY_CUSTOM_RULE": {"33339": {"check_period": 120, "max_incidents": 10}}}
+
+$ imunify360-agent notifications-config show 2>/dev/null
+{'rules': {'CUSTOM_SCAN_FINISHED': {'SCRIPT': {'enabled': False, 'scripts': []}}, 'CUSTOM_SCAN_MALWARE_FOUND': {'SCRIPT': {'enabled': True, 'scripts': ['/opt/imunify360/venv/share/imunify360/scripts/send-notifications']}}, 'CUSTOM_SCAN_STARTED': {'SCRIPT': {'enabled': False, 'scripts': []}}, 'REALTIME_MALWARE_FOUND': {'SCRIPT': {'enabled': True, 'scripts': ['/opt/imunify360/venv/share/imunify360/scripts/send-notifications']}}, 'USER_SCAN_FINISHED': {'SCRIPT': {'enabled': False, 'scripts': []}}, 'USER_SCAN_MALWARE_FOUND': {'SCRIPT': {'enabled': True, 'scripts': ['/opt/imunify360/venv/share/imunify360/scripts/send-notifications']}}, 'USER_SCAN_STARTED': {'SCRIPT': {'enabled': False, 'scripts': []}}}}
+
+
+######## 6. unattended-upgrades / apt
+
+$ grep -nE "^Unattended-Upgrade::(Mail|MailReport|MailOnlyOnError|Automatic-Reboot)" /etc/apt/apt.conf.d/50unattended-upgrades
+
+$ cat /etc/apt/apt.conf.d/20auto-upgrades
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+
+$ ls /etc/apt/apt.conf.d/ | grep -i cbc; cat /etc/apt/apt.conf.d/*cbc* 2>/dev/null
+52cbc-auto-reboot
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-Time "04:00";
+
+$ ls /var/run/reboot-required* 2>/dev/null
+
+
+######## 7. fail2ban
+
+$ grep -nE "^(action|destemail|sender|banaction)" /etc/fail2ban/jail.local /etc/fail2ban/jail.conf /etc/fail2ban/jail.d/* 2>/dev/null
+/etc/fail2ban/jail.local:6:destemail = johan@cbcit.dk
+/etc/fail2ban/jail.conf:127:action  = iptables[name=ssh, port=ssh]
+/etc/fail2ban/jail.conf:141:action   = iptables-allports[name=recidive]
+/etc/fail2ban/jail.d/plesk.conf:10:action   = iptables-multiport[name="plesk-proftpd", port="ftp,ftp-data,ftps,ftps-data"]
+/etc/fail2ban/jail.d/plesk.conf:16:action   = iptables-multiport[name="plesk-qmail", port="smtp,smtps,submission"]
+/etc/fail2ban/jail.d/plesk.conf:22:action   = iptables-multiport[name="plesk-postfix", port="smtp,smtps,submission"]
+/etc/fail2ban/jail.d/plesk.conf:28:action   = iptables-multiport[name="plesk-courierimap", port="imap,imaps,pop3,pop3s"]
+/etc/fail2ban/jail.d/plesk.conf:34:action   = iptables-multiport[name="plesk-dovecot", port="imap,imaps,pop3,pop3s,4190"]
+/etc/fail2ban/jail.d/plesk.conf:40:action   = iptables-multiport[name="plesk-horde", port="80,443,7080,7081", protocol="tcp,udp"]
+/etc/fail2ban/jail.d/plesk.conf:46:action   = iptables-multiport[name="plesk-roundcube", port="80,443,7080,7081", protocol="tcp,udp"]
+/etc/fail2ban/jail.d/plesk.conf:53:action   = iptables-multiport[name=apache, port="80,443,7080,7081", protocol="tcp,udp"]
+/etc/fail2ban/jail.d/plesk.conf:64:action   = iptables-multiport[name=BadBots, port="80,443,7080,7081", protocol="tcp,udp"]
+/etc/fail2ban/jail.d/plesk.conf:72:action   = iptables-multiport[name="plesk-login", port="443,8880,8443", protocol="tcp,udp"]
+/etc/fail2ban/jail.d/plesk.conf:78:action   = iptables-multiport[name="plesk-modsecurity", port="80,443,7080,7081", protocol="tcp,udp"]
+/etc/fail2ban/jail.d/plesk.conf:84:action   = iptables-multiport[name="plesk-wordpress", port="80,443,7080,7081", protocol="tcp,udp"]
+/etc/fail2ban/jail.d/plesk.conf:92:action   = iptables-allports[name="plesk-permanent-ban", protocol="tcp,udp"]
+/etc/fail2ban/jail.d/plesk.conf:101:action   = iptables-allports[name="plesk-one-week-ban", protocol="tcp,udp"]
+
+$ fail2ban-client status
+Status
+|- Number of jail:	13
+`- Jail list:	plesk-apache, plesk-apache-badbot, plesk-dovecot, plesk-modsecurity, plesk-one-week-ban, plesk-panel, plesk-permanent-ban, plesk-postfix, plesk-proftpd, plesk-roundcube, plesk-wordpress, recidive, ssh
+
+
+######## 8. Plesk-sites / sysusers
+
+$ ls /var/www/vhosts/
+cbcit.dk
+chroot
+datagaarden.dk
+default
+event.cbcit.dk
+system
+
+$ for d in event.cbcit.dk cbcit.dk datagaarden.dk; do echo "$d -> $(stat -c %U /var/www/vhosts/$d/httpdocs)"; done
+event.cbcit.dk -> event.cbcit.dk_x3pjx5okzbn
+cbcit.dk -> cbcitdk
+datagaarden.dk -> datagaardendk
+
+
+######## 9. WordPress pr. site
+
+
+######## 9.event.cbcit.dk (sysuser event.cbcit.dk_x3pjx5okzbn)
+admin_email: johan@cbcit.dk
+auto_update_core_minor: enabled / WP_AUTO_UPDATE_CORE: minor
+auto_update_plugins: Error: Could not get 'auto_update_plugins' option. Does it exist?
+auto_update_themes: Error: Could not get 'auto_update_themes' option. Does it exist?
+-- plugins:
+name	status	version	auto_update
+cbc-event-planner	active	2.7.0	off
+two-factor	active	0.17.0	off
+duplicate-post	active	4.7	off
+cbc-admin-2fa	must-use	1.0.0	off
+cbc-no-user-enum	must-use	1.0.0	off
+cbc-hide-version	must-use	1.0.0	off
+-- cron events:
+hook	next_run_relative	recurrence
+cbc_outbox_send	now	5 minutes
+wp_update_user_counts	9 hours 8 minutes	12 hours
+wp_update_plugins	10 hours 18 minutes	12 hours
+wp_update_themes	10 hours 48 minutes	12 hours
+cbc_reminder_pdf_purge	17 hours 5 minutes	1 day
+cbc_outbox_purge	17 hours 35 minutes	1 day
+cbc_meeting_pending_reminder	20 hours 35 minutes	1 day
+cbc_pending_kollega_reminder	21 hours 35 minutes	1 day
+cbc_send_reminders	22 hours 35 minutes	1 day
+wp_delete_temp_updater_backups	2 days 20 hours	1 week
+-- mu-plugins:
+cbc-admin-2fa.php
+cbc-hide-version.php
+cbc-no-user-enum.php
+
+
+######## 9.cbcit.dk (sysuser cbcitdk)
+admin_email: johan@cbcit.dk
+auto_update_core_minor: enabled / WP_AUTO_UPDATE_CORE: minor
+auto_update_plugins: ["akismet\/akismet.php","contact-form-7\/wp-contact-form-7.php","woocommerce-checkout-manager\/woocommerce-checkout-manager.php","facebook-for-woocommerce\/facebook-for-woocommerce.php","flexible-checkout-fields\/flexible-checkout-fields.php","cookie-law-info\/cookie-law-info.php","getsitecontrol\/get-site-control.php","mailchimp-for-wp\/mailchimp-for-wp.php","media-cleaner\/media-cleaner.php","nextend-facebook-connect\/nextend-facebook-connect.php","really-simple-ssl\/rlrsssl-really-simple-ssl.php","regenerate-thumbnails\/regenerate-thumbnails.php","shortcoder\/shortcoder.php","speed-booster-pack\/speed-booster-pack.php","widget-options\/plugin.php","woocommerce\/woocommerce.php","woocommerce-google-analytics-integration\/woocommerce-google-analytics-integration.php","woocommerce-quickpay\/woocommerce-quickpay.php","woosidebars\/woosidebars.php","wordfence\/wordfence.php","wp-product-feed-manager\/wp-product-feed-manager.php","wp-store-locator\/wp-store-locator.php","wp-optimize\/wp-optimize.php","duplicate-post\/duplicate-post.php","wordpress-seo\/wp-seo.php","wordpress-seo-premium\/wp-seo-premium.php","wpseo-video\/video-seo.php","wpseo-local\/local-seo.php","wpseo-woocommerce\/wpseo-woocommerce.php","wpseo-news\/wpseo-news.php","acf-content-analysis-for-yoast-seo\/yoast-acf-analysis.php"]
+auto_update_themes: Error: Could not get 'auto_update_themes' option. Does it exist?
+-- plugins:
+name	status	version	auto_update
+akismet	active	5.7.2	on
+cbc-tilbudsavis-fields	active	1.1.0	off
+contact-form-7	active	6.2.4.1	on
+webappick-product-feed-for-woocommerce	inactive	8.0.42	off
+flexible-checkout-fields	active	4.1.44	on
+getsitecontrol	active	3.0.0	on
+mailchimp-for-wp	active	4.15.0	on
+media-cleaner	active	7.3.6	on
+woocommerce-quickpay	active	8.0.3	on
+really-simple-ssl	active	9.8.4	on
+regenerate-thumbnails	active	3.1.6	on
+shortcoder	active	6.6	on
+simple-cloudflare-turnstile	active	1.44.5	off
+tablepress	active	3.4.1	off
+widget-options	active	4.2.6.1	on
+woocommerce	active	11.2.2	on
+woosidebars	active	1.4.6	on
+wordfence	active	9.0.2	on
+wps-hide-login	active	1.9.19	off
+wp-store-locator	active	3.1.1	on
+duplicate-post	active	4.7	on
+wordpress-seo	active	28.8	on
+cbc-checkout-guard	must-use	1.0.0	off
+cbc-hide-version	must-use	1.0.0	off
+-- cron events:
+hook	next_run_relative	recurrence
+action_scheduler_run_queue	now	1 minute
+rsssl_every_five_minutes_hook	now	5 minutes
+rsssl_every_three_hours_hook	2 minutes	3 hours
+facebook_for_woocommerce_hourly_heartbeat_cron	18 minutes 15 seconds	1 hour
+wordfence_ls_ntp_cron	35 minutes 54 seconds	1 hour
+wordfence_hourly_cron	35 minutes 59 seconds	1 hour
+woocommerce_marketplace_fetch_promotions	7 hours 44 minutes	12 hours
+wp_update_plugins	8 hours 33 minutes	12 hours
+wp_update_themes	8 hours 33 minutes	12 hours
+wp_update_user_counts	9 hours 42 minutes	12 hours
+woocommerce_marketplace_cron_fetch_promotions	9 hours 59 minutes	12 hours
+wordfence_start_scheduled_scan	10 hours 50 minutes	Non-repeating
+mc4wp_refresh_mailchimp_lists	19 hours 26 minutes	1 day
+wordfence_daily_autoUpdate	20 hours 35 minutes	1 day
+wordfence_daily_cron	20 hours 35 minutes	1 day
+facebook_for_woocommerce_daily_heartbeat_cron	21 hours 18 minutes	1 day
+rsssl_every_day_hook	22 hours 52 minutes	1 day
+rsssl_every_week_hook	2 days 22 hours	1 week
+wordfence_email_activity_report	3 days 5 hours	Non-repeating
+wordfence_start_scheduled_scan	3 days 10 hours	Non-repeating
+wp_delete_temp_updater_backups	5 days 22 hours	1 week
+wordfence_start_scheduled_scan	6 days 10 hours	Non-repeating
+rsssl_every_month_hook	1 week 1 day	1 month
+-- mu-plugins:
+cbc-checkout-guard.php
+cbc-hide-version.php
+-- Wordfence:
+alertEmails=johan@cbcit.dk
+alertFreqTrack=a:1:{i:29874791;i:1;}
+alertOn_adminLogin=1
+alertOn_block=0
+alertOn_breachLogin=1
+alertOn_critical=1
+alertOn_firstAdminLoginOnly=1
+alertOn_firstNonAdminLoginOnly=0
+alertOn_loginLockout=1
+alertOn_lostPasswdForm=1
+alertOn_nonAdminLogin=0
+alertOn_scanIssues=1
+alertOn_severityLevel=25
+alertOn_throttle=0
+alertOn_update=0
+alertOn_wafDeactivated=1
+alertOn_warnings=1
+alertOn_wordfenceDeactivated=1
+alert_maxHourly=5
+emailedIssuesList=a:746:{i:0;a:2:{s:7:"ignoreC";s:32:"0c360065982ee14e5f7c98c870a08ebd";s:7:"ignoreP";s:32:"0c360065982ee14e5f7c98c870a08e
+email_summary_dashboard_widget_enabled=1
+email_summary_enabled=1
+email_summary_excluded_directories=wp-content/cache,wp-content/wflogs
+email_summary_interval=weekly
+notification_blogHighlights=1
+notification_productUpdates=1
+notification_promotions=1
+notification_scanStatus=1
+notification_securityAlerts=1
+notification_updatesNeeded=1
+scheduledScansEnabled=1
+-- WooCommerce:
+johan@cbcit.dk
+info@cbcit.dk
+new_order: yes -> info@cbcit.dk
+cancelled_order: yes -> info@cbcit.dk
+failed_order: ? -> -
+low_stock: ? -> -
+no_stock: ? -> -
+-- Really Simple SSL mail:
+"vulnerability_notification_dashboard":"l"
+"vulnerability_notification_sitewide":"h"}
+
+
+######## 9.datagaarden.dk (sysuser datagaardendk)
+admin_email: johan@cbcit.dk
+auto_update_core_minor: enabled / WP_AUTO_UPDATE_CORE: Error: The constant or variable 'WP_AUTO_UPDATE_CORE' is not defined in the 'wp-config.php' file.
+auto_update_plugins: {"2":"classic-editor\/classic-editor.php","3":"contact-form-7\/wp-contact-form-7.php","5":"media-cleaner\/media-cleaner.php","6":"really-simple-ssl\/rlrsssl-really-simple-ssl.php","10":"wordfence\/wordfence.php","14":"official-facebook-pixel\/facebook-for-wordpress.php","15":"google-site-kit\/google-site-kit.php","16":"complianz-gdpr\/complianz-gpdr.php","17":"duplicate-page\/duplicatepage.php","19":"wp-consent-api\/wp-consent-api.php","21":"insert-headers-and-footers\/ihaf.php","22":"wps-hide-login\/wps-hide-login.php","23":"wp-fastest-cache\/wpFastestCache.php"}
+auto_update_themes: Error: Could not get 'auto_update_themes' option. Does it exist?
+-- plugins:
+name	status	version	auto_update
+classic-editor	active	1.7.0	on
+complianz-gdpr	active	7.5.7	on
+contact-form-7	active	6.2.4.1	on
+duplicate-page	active	4.5.9	on
+media-cleaner	active	7.3.6	on
+official-facebook-pixel	active	5.2.2	on
+really-simple-ssl	active	9.8.4	on
+google-site-kit	active	1.191.0	on
+wordfence	active	9.0.2	on
+insert-headers-and-footers	active	2.4.1	on
+wp-consent-api	active	2.1.0	on
+wp-fastest-cache	active	1.5.5	on
+wps-hide-login	active	1.9.19	on
+cbc-hide-version	must-use	1.0.0	off
+-- cron events:
+hook	next_run_relative	recurrence
+rsssl_every_five_minutes_hook	now	5 minutes
+cmplz_every_five_minutes_hook	now	5 minutes
+wordfence_hourly_cron	36 minutes 11 seconds	1 hour
+wordfence_ls_ntp_cron	39 minutes 20 seconds	1 hour
+wp_update_user_counts	48 minutes 1 second	12 hours
+rsssl_every_three_hours_hook	2 hours 51 minutes	3 hours
+wp_delete_temp_updater_backups	4 hours 50 minutes	1 week
+wp_update_plugins	8 hours 33 minutes	12 hours
+wp_update_themes	8 hours 33 minutes	12 hours
+wordfence_start_scheduled_scan	10 hours 46 minutes	Non-repeating
+googlesitekit_cron_update_remote_features	11 hours 27 minutes	12 hours
+googlesitekit_email_reporting_monitor	11 hours 27 minutes	1 day
+cmplz_every_day_hook	20 hours 26 minutes	1 day
+wordfence_daily_cron	20 hours 36 minutes	1 day
+rsssl_every_day_hook	22 hours 3 minutes	1 day
+googlesitekit_email_reporting_initiator	2 days 21 hours	Non-repeating
+wordfence_email_activity_report	3 days 4 hours	Non-repeating
+wordfence_start_scheduled_scan	3 days 10 hours	Non-repeating
+cmplz_every_week_hook	3 days 20 hours	1 week
+cmplz_every_month_hook	4 days 20 hours	1 month
+rsssl_every_week_hook	5 days 8 hours	1 week
+wordfence_start_scheduled_scan	6 days 10 hours	Non-repeating
+rsssl_every_month_hook	1 week 1 day	1 month
+googlesitekit_email_reporting_cleanup	2 weeks 5 days	1 month
+googlesitekit_email_reporting_initiator	3 weeks 3 days	Non-repeating
+googlesitekit_email_reporting_initiator	1 month 3 weeks	Non-repeating
+-- mu-plugins:
+cbc-hide-version.php
+
+
+######## 10. Egne logs, sidste 14 dage
+
+$ tail -40 /var/log/cbc-egress-report.log 2>/dev/null
+
+$ grep -hE "mail" /var/log/cbc-advisory-watch.log /var/log/cbc-security-updates.log /var/log/cbc-wp-integrity.log /var/log/cbc-backup-check.log 2>/dev/null | tail -40
+2026-11-01 07:15:23 mail sendt: [server.cbcit.dk] Advisory: 3 afvigelse(r) - PHP/WordPress/plugins/Plesk
+2026-11-02 07:33:28 mail sendt: [server.cbcit.dk] Ugentlig status: 3 afvigelse(r) kraever handling
+2026-11-03 07:15:26 mail sendt: [server.cbcit.dk] Advisory: 4 afvigelse(r) - PHP/WordPress/plugins/Plesk
+2026-11-04 07:15:25 mail sendt: [server.cbcit.dk] Advisory: 4 afvigelse(r) - PHP/WordPress/plugins/Plesk
+2026-11-05 07:15:28 mail sendt: [server.cbcit.dk] Advisory: 5 afvigelse(r) - PHP/WordPress/plugins/Plesk
+2026-11-06 07:15:27 mail sendt: [server.cbcit.dk] Advisory: 5 afvigelse(r) - PHP/WordPress/plugins/Plesk
+2026-11-04 16:45:37 mail sendt til johan@cbcit.dk: [server.cbcit.dk] Sikkerhedsopdateringer installeret: 8 pakke(r) (PHP: nej)
+2026-11-05 16:45:50 mail sendt til johan@cbcit.dk: [server.cbcit.dk] Sikkerhedsopdateringer installeret: 11 pakke(r) (PHP: nej)
+2026-11-06 08:45:19 mail sendt til johan@cbcit.dk: [server.cbcit.dk] Sikkerhedsopdateringer installeret: 1 pakke(r) (PHP: nej)
+
+$ cat /var/lib/cbc-advisory/last-report.txt 2>/dev/null | head -60
+Advisory-rapport 2026-11-06 07:15:27 - server.cbcit.dk (tilstand: check)
+
+AFVIGELSER (5) - hvad er nyt, hvad koerer, hvad goer du:
+  * WordPress event.cbcit.dk: seneste er 7.1.4, sitet koerer 7.1.3. (event har DISALLOW_FILE_MODS=1 -> ingen auto-update; manuelt via wp-cli, jf. deploy-runbook) Opdater:  su -s /bin/bash event.cbcit.dk_x3pjx5okzbn -c "cd /var/www/vhosts/event.cbcit.dk/httpdocs && /opt/plesk/php/8.4/bin/php -d memory_limit=512M /usr/local/bin/wp core update --skip-themes && /opt/plesk/php/8.4/bin/php -d memory_limit=512M /usr/local/bin/wp core update-db --skip-themes"
+
+  * Plugin cbcit.dk: webappick-product-feed-for-woocommerce 8.0.40 -> 8.0.42   [SIKKERHED? changelog naevner: 42 Security: only administrators can add code blocks to Custom Template]  ->  su -s /bin/bash cbcitdk -c "cd /var/www/vhosts/cbcit.dk/httpdocs && /opt/plesk/php/8.4/bin/php -d memory_limit=512M /usr/local/bin/wp plugin update webappick-product-feed-for-woocommerce --skip-themes"
+
+  * Plugin cbcit.dk: simple-cloudflare-turnstile 1.44.3 -> 1.44.5   [SIKKERHED? changelog naevner:  Security: Fixed an issue where the Turnstile check on the WordPress ]  ->  su -s /bin/bash cbcitdk -c "cd /var/www/vhosts/cbcit.dk/httpdocs && /opt/plesk/php/8.4/bin/php -d memory_limit=512M /usr/local/bin/wp plugin update simple-cloudflare-turnstile --skip-themes"
+
+  * Plugin datagaarden.dk: wp-fastest-cache 1.5.4 -> 1.5.5   [SIKKERHED? changelog naevner:  the translations Removed unused static assets Preserve the Security tab when navigating its links by keeping #wpfc-security in ]  ->  su -s /bin/bash datagaardendk -c "cd /var/www/vhosts/datagaarden.dk/httpdocs && /opt/plesk/php/8.4/bin/php -d memory_limit=512M /usr/local/bin/wp plugin update wp-fastest-cache --skip-themes"
+
+  * Plesk: ny udgave 18.0.82 findes (installeret 18.0.81.7). Ny udgave installeres IKKE automatisk - planlaeg:  plesk installer upgrade   (backup foerst; mellem konferencer)
+STATUS:
+  - PHP 8.4: server 8.4.27 = php.net 8.4.27 (21 Oct 2026) - OK
+  - WP event.cbcit.dk: 7.1.3 < 7.1.4
+  - WP cbcit.dk: 7.1.4 (seneste 7.1.4) - OK
+  - WP datagaarden.dk: 7.1.4 (seneste 7.1.4) - OK
+  - Plugins event.cbcit.dk: ingen opdateringer afventer - OK
+  - Plugins cbcit.dk: 3 opdatering(er) afventer
+  - Plugins datagaarden.dk: 2 opdatering(er) afventer
+  - Plesk 18.0.81.7: ingen komponent-opdateringer - OK
+  - Plesk: nyeste udgave 18.0.82 > installeret 18.0.81
+  - Ubuntu/apt: 1 pakke(r) kan opgraderes (ikke-security haandteres ikke automatisk): ca-certificates 
+  - cbc-security-updates (hver 4. t): seneste koersel: 2026-11-06 04:45:08 END: 0 pakke(r) aendret; php 8.4.27 -> 8.4.27; ingen PHP-opgradering; fejl=0
+  - cbc-security-updates: seneste faktiske opgradering: 2026-11-05 16:45:48 END: 11 pakke(r) aendret; php 8.4.27 -> 8.4.27; ingen PHP-opgradering; fejl=0
+  - Egress-filter: tilstand: enforce
+
+Afventende plugin-opdateringer (alle):
+  - cbcit.dk: webappick-product-feed-for-woocommerce 8.0.40 -> 8.0.42   [SIKKERHED? changelog naevner: 42 Security: only administrators can add code blocks to Custom Template]
+  - cbcit.dk: flexible-checkout-fields-pro 4.0.32 -> 4.0.32   [ikke paa wp.org (premium) - tjek leverandoerens changelog]
+  - cbcit.dk: simple-cloudflare-turnstile 1.44.3 -> 1.44.5   [SIKKERHED? changelog naevner:  Security: Fixed an issue where the Turnstile check on the WordPress ]
+  - datagaarden.dk: complianz-gdpr 7.5.6 -> 7.5.7   [changelog uden sikkerheds-ord]
+  - datagaarden.dk: wp-fastest-cache 1.5.4 -> 1.5.5   [SIKKERHED? changelog naevner:  the translations Removed unused static assets Preserve the Security tab when navigating its links by keeping #wpfc-security in ]
+
+Kilder: php.net releases-JSON, api.wordpress.org (version-check + plugin-info), Plesk autoinstaller (read-only), wp-cli som sysuser.
+Script: /usr/local/sbin/cbc-advisory-watch.sh  (check dagligt 07:15 / weekly mandag 07:30 / show = manuel)   Log: /var/log/cbc-advisory-watch.log
+Runbook: /root/cbc-hardening-2026-10/README.md
+
+
+######## 11. Hardening-README (filliste + mail-omtale)
+
+$ ls /root/cbc-hardening-2026-10/
+backup
+cbc-hide-version.php
+dns-queries.log.gz
+lav-pakke.sh
+perms-rollback
+quarantine-2026-10-23
+README.md
+rollback-step2.sh
+rollback-step3.sh
+rollback-step4.sh
+stage
+
+$ grep -niE "mail|alarm|notif" /root/cbc-hardening-2026-10/README.md
+31:woocommerce.com, Akismet, Mailchimp, Site Kit/googleapis, Complianz, premium-plugin-opdateringer m.fl.).
+42:- `/usr/local/sbin/cbc-egress-report.sh` + `/etc/cron.d/cbc-egress-report` — daglig mail 06:55 til
+66:  Fail-safe: ved fejl beholdes gammel fil + mail til Johan (første kørsel 12:07 fejlede på for stram Meta-grænse → grænser
+67:  hævet til 800/1000, kørsel 12:09 OK; den fejlmail kan ignoreres).
+77:Akismet (rest/api.akismet.com), Mailchimp (us9.api.mailchimp.com, login.mailchimp.com), opdaterings-/licens-værter
+90:www.google.com → 200, example.com → blokeret (000, kun disse i loggen); wp-cli 7.1.3 ×3; `wp_mail` fra event-uid →
+106:1. Læs rapportmailen / `journalctl -k --since "-24 hours" | grep cbc-egress-drop`.
+137:(metode), FB-pixel Curl::exec() (metode). PHP `mail()` bruger C-niveau popen → upåvirket (verificeret ENABLED).
+140:sapi=fpm-fcgi 8.4.27, mail/curl_init enabled, post 8M/upload 2M/memory 128M, upload_progress=0.
+183:2. `cbcit.dk/.../uploads/mailchimp-for-wp/debug-log.php` = 371 MB (MC4WP-debuglog, sidst skrevet 31/7, log-niveau "warning"
+206:se hvor serveren står (mail ved afvigelse + ugentlig "alt OK").
+228:4. **Mail til johan@cbcit.dk KUN hvis ≥1 pakke ændret (eller fejl)**: pakke gammel→ny, PHP-version før/efter, om FPM blev
+231:- Manuelt: `cbc-security-updates.sh --dry-run` (viser plan, ændrer intet) · `--test-mail` · normal kørsel uden argumenter.
+234:  ikke-security Ubuntu-pakker (noble-updates: cloud-init, tmux, ubuntu-pro-client …) opgraderes IKKE automatisk (vises i ugemailen).
+237:- `check` dagligt 07:15 (ikke mandag) → mail KUN ved afvigelse. `weekly` mandag 07:30 → status-mail ALTID ("alt OK" eller
+238:  "N afvigelser"). `show` = fuld rapport på stdout, ingen mail/state. Afsender `cbc-advisory-watch@server.cbcit.dk`.
+246:     sikkerheds-ord]` / `[ikke paa wp.org (premium)]`. Daglig mail kun første gang en opdatering ses eller ved sikkerheds-flag
+247:     (state `/var/lib/cbc-advisory/reported-plugins.txt`); ugemailen lister alle afventende.
+261:**Tilføjelse 23/10 10:25:** site-tjekket i mailen går DIREKTE mod origin (`curl -k --resolve <host>:443:178.104.70.94`) mod de kanoniske hosts event.cbcit.dk / www.cbcit.dk / www.datagaarden.dk — via Cloudflare svarer serverens egen IP 403 (CF-challenge), og cbcit.dk er i /etc/hosts med CF-origin-cert. Verificeret 200/200/200.
+263:**Tilføjelse 26/10:** første rigtige kørsel med effekt var 23/10 16:45 (zlib1g fra noble-security; needrestart genstartede FPM/nginx/apache/mariadb; mail sent). FPM-linjen i mailen viser nu også genstart udløst af needrestart, ikke kun af PHP-pakken. Logrotate roterer søndag (ældre linjer i .log.1).
+364:## 2026-10-29 12:52 - Mail-DNS pkt 7, trin 1+2: SPF-oprydning cbcit.dk (CF DNS via API)
+374:Simply fravalgt af Johan. Mailchimp (servers.mcsv.net) beholdt. mail.cbcit.dk har egen SPF (amazonses ~all) - uaendret.
+390:Formaal: udebleven koersel af egress-rapport / Plesk-backup / Hetzner-snapshot skal give alarm (foer: kun selvrapporterende mails).
+
+######## FÆRDIG 2026-11-06T11:24:42+01:00

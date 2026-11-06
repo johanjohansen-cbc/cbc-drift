@@ -1,0 +1,3 @@
+# CBC 2026-10-21: ordre-velocity-overvaagning cbcit.dk (card-testing). Mailer johan@cbcit.dk ved >5 ordrer/time.
+SHELL=/bin/bash
+7 * * * * root /usr/local/sbin/cbc-woo-order-watch.sh >> /var/log/cbc-woo-order-watch.log 2>&1

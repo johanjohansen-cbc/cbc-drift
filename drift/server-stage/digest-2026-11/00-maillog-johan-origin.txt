@@ -1,0 +1,21 @@
+  55  noreply@cbcit.dk | uid=0 from=root | msgid@server.cbcit.dk
+  20  salg@datagaarden.dk | uid=10002 from=salg@datagaarden.dk | msgid@www.datagaarden.dk
+  11  salg@datagaarden.dk | uid=10002 from=salg@datagaarden.dk | msgid@server.cbcit.dk
+  11  johan@cbcit.dk | uid=999 from=johan@cbcit.dk | msgid@server.cbcit.dk
+  10  wordpress@cbcit.dk | uid=10001 from=wordpress@cbcit.dk | msgid@server.cbcit.dk
+   8  wordpress@cbcit.dk | uid=10001 from=wordpress@cbcit.dk | msgid@www.cbcit.dk
+   7  info@cbcit.dk | uid=10001 from=info@cbcit.dk | msgid@www.cbcit.dk
+   3  noreply@cbcit.dk | uid=999 from=root@server.cbcit.dk | msgid@server.cbcit.dk
+   1  noreply@cbcit.dk | uid=10000 from=wordpress@event.cbcit.dk | msgid@server.cbcit.dk
+   1  noreply@cbcit.dk | uid=10000 from=event.cbcit.dk_x3pjx5okzbn@event.cbcit.dk | msgid@server.cbcit.dk
+   1  noreply@cbcit.dk | uid=10000 from=event.cbcit.dk_x3pjx5okzbn@event.cbcit.dk | msgid@event.cbcit.dk
+
+uid-map:
+root:0
+event.cbcit.dk_x3pjx5okzbn:10000
+cbcitdk:10001
+datagaardendk:10002
+kent:10003
+
+sender_canonical:
+/@(event|server)\.cbcit\.dk$/   noreply@cbcit.dk

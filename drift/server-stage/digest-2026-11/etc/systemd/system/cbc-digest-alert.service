@@ -1,0 +1,7 @@
+# CBC 2026-11-06: udloeses af cbc-digest-alert.path
+[Unit]
+Description=CBC digest: send alarmer fra outbox
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/cbc-digest-alert.sh

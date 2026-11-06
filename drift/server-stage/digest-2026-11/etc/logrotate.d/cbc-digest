@@ -1,0 +1,11 @@
+# CBC 2026-11-06: logs fra digest-systemet og cron-linjer der tidligere ikke havde omdirigering
+/var/log/cbc-digest.log /var/log/cbc-woo-order-watch.log /var/log/cbc-hc-ping.log {
+    su root root
+    weekly
+    rotate 12
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 root root
+}

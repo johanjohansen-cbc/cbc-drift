@@ -1,0 +1,32 @@
+maillog-filer:
+-rw-r----- 1 syslog adm     5888 Nov  6 08:45 /var/log/maillog
+-rw-r----- 1 root   root 6442226 Nov  6 06:37 /var/log/maillog.processed
+
+== afsender [status] -> antal (fra 2026-10-23) ==
+  128  TOTAL
+   61  noreply@cbcit.dk [sent]
+   31  salg@datagaarden.dk [sent]
+   18  wordpress@cbcit.dk [sent]
+   11  johan@cbcit.dk [sent]
+    7  info@cbcit.dk [sent]
+
+== pr. dag ==
+2026-10-23 10
+2026-10-24 7
+2026-10-25 4
+2026-10-26 15
+2026-10-27 9
+2026-10-28 16
+2026-10-29 9
+2026-10-30 8
+2026-10-31 5
+2026-11-01 7
+2026-11-02 10
+2026-11-03 8
+2026-11-04 6
+2026-11-05 8
+2026-11-06 6
+
+== ældste/nyeste dato med johan@-levering i loggen ==
+2026-06-02
+2026-11-06

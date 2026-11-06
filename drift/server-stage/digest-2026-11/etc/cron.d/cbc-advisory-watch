@@ -1,0 +1,6 @@
+# CBC 2026-10-23: advisory-overvaagning (PHP/WordPress/plugins/Plesk) -> johan@cbcit.dk.
+# check = dagligt 07:15 (ikke mandag), mail KUN ved afvigelse. weekly = mandag 07:15 (flyttet fra 07:30 2026-11-06 saa ugerapporten naar digesten 07:30), "alt OK"-status ALTID.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+15 7 * * 0,2-6 root /usr/local/sbin/cbc-advisory-watch.sh check >/dev/null 2>&1
+15 7 * * 1     root /usr/local/sbin/cbc-advisory-watch.sh weekly >/dev/null 2>&1
